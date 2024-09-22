@@ -1,30 +1,40 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import Header from "./components/Header.vue"
+import Sidebar from "./components/Sidebar.vue"
+
+import TaskListView from "./components/views/TaskList.vue"
+import PlannerView from "./components/views/Planner.vue"
+import FocusSessionView from "./components/views/FocusSession.vue"
+
+import {Router, Views} from "./router"
 </script>
 
 <template>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <Sidebar></Sidebar>
+
+  <div id="right">
+    <Header></Header>
+
+    <div id="main">
+      <!-- Views -->
+      <TaskListView v-show="Router.current.value == Views.TASKS"></TaskListView>
+      <PlannerView v-show="Router.current.value == Views.PLANNER"></PlannerView>
+      <FocusSessionView v-show="Router.current.value == Views.FOCUS"></FocusSessionView>
+    </div>
   </div>
-  <HelloWorld msg="Yo WSG" />
 </template>
 
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+#right {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+
+#main {
+  width: 100%;
+  height: 100%;
 }
 </style>
