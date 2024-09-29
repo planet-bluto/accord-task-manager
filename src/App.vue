@@ -6,10 +6,13 @@ import TaskListView from "./components/views/TaskList.vue"
 import PlannerView from "./components/views/Planner.vue"
 import FocusSessionView from "./components/views/FocusSession.vue"
 
+import Popups from "./components/Popups.vue"
+
 import {Router, Views} from "./router"
 </script>
 
 <template>
+  <Popups></Popups>
   <Sidebar></Sidebar>
 
   <div id="right">

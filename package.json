@@ -7,22 +7,41 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "test:android": "vue-tsc -b && vite build && cordova run android --device",
+    "test:electron": "vue-tsc -b && vite build && cordova run electron",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bluaxolotl/sql.js-as-sqlite3": "^0.2.4",
+    "localforage": "^1.10.0",
     "moment": "^2.30.1",
+    "sequelize": "npm:@bluaxolotl/sequelize@^6.37.4",
+    "sequelize-browser": "npm:@bluaxolotl/sequelize-browser@^6.1.3",
+    "sql.js": "^1.11.0",
     "vue": "^3.4.37"
   },
   "devDependencies": {
+    "@types/sql.js": "^1.4.9",
     "@vitejs/plugin-vue": "^5.1.2",
     "cordova-android": "^13.0.0",
+    "cordova-electron": "^4.0.0",
+    "cordova-plugin-background-mode": "^0.7.3",
+    "cordova-plugin-badge": "^0.8.9",
+    "cordova-plugin-device": "^3.0.0",
+    "cordova-plugin-local-notification": "^1.0.0",
     "typescript": "^5.5.3",
     "vite": "^5.4.1",
     "vue-tsc": "^2.0.29"
   },
   "cordova": {
     "platforms": [
-      "android"
-    ]
+      "android",
+      "electron"
+    ],
+    "plugins": {
+      "cordova-plugin-background-mode": {},
+      "cordova-plugin-local-notification": {
+        "ANDROID_SUPPORT_V4_VERSION": "26.+"
+      }
+    }
   }
 }

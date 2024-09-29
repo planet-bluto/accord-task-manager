@@ -20,7 +20,7 @@
   --text-0: #acacac;
   --text-1: #FFF;
 
-  --gap: 20px;
+  --gap: 16px;
   --sidebar-width: 360px;
 }
 
@@ -51,4 +51,57 @@ h1 {
 
 p {
   margin: 0px;
+}
+
+/* Popup Styling */
+
+.popup-line {
+  display: flex;
+  gap: 16px;
+}
+
+.popup-input {
+  color: var(--theme-text-1);
+  background: var(--theme-back-1);
+  border: none;
+  border-radius: 8px;
+}
+
+.popup-input-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Popup Repeats Input */
+
+.popup-input-repeats-button {
+  width: calc(100% - 16px);
+  height: min-content;
+  color: var(--theme-text-1);
+  background: var(--theme-back-1);
+  border: none;
+  border-radius: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.popup-input-repeats-panel {
+  width: calc(480px - 30px);
+  height: calc(240px - 30px);
+  background: var(--theme-back-3);
+  border-radius: 15px;
+  padding: 15px;
+  position: absolute;
+  margin-top: 60px;
+  display: none;
+}
+
+.popup-input-repeats-panel[active] {
+  display: inline;
+}
+
+.popup-header {
+  font-size: 40px;
 }
