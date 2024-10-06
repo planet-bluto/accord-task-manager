@@ -15,8 +15,8 @@ import {PopupDriver} from "../popups"
 
 <style scoped>
 #popup {
-    width: calc((100% - 700px) - (16px * 2));
-    height: calc((100% - 200px) - (16px * 2));
+    width: calc((100% - 150px) - (16px * 2));
+    height: calc((100% - 150px) - (16px * 2));
     background: var(--theme-back-2);
     border-radius: 15px;
     pointer-events: all;

@@ -4,7 +4,7 @@ import Sequelize from 'sequelize-browser'
 import initSqlJs from 'sql.js'
 
 import initSchemas from "./database/schemas"
-import {Task} from "./models/task"
+import {PlannerTask} from "./models/task"
 
 sqlJsAsSqlite3.configure({
   // `sql.js` package default export.
@@ -74,9 +74,9 @@ async function main() {
 
   await initSchemas(sequelize)
 
-  console.log(Task)
+  console.log(PlannerTask)
 
-	let tasks = await Task?.findAll();
+	let tasks = await PlannerTask?.findAll();
 
 	console.log(tasks.map((task: any) => task.get({plain:true})))}
 

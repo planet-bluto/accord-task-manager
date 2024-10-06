@@ -1,52 +1,90 @@
 import { DataTypes, ForeignKey, InferAttributes, InferCreationAttributes, Model, Optional, Sequelize, CreationOptional } from "sequelize-browser"
 import fug from "sequelize-browser"
-import { ClockTime, InstanceRule, TaskStatus } from "../types"
+import { ClockTime, InstanceRule, TaskOverride, TaskStatus } from "../types"
 
-// type TaskAttributes = {
-//     icon?: string;
-//     title: string;
-//     duration: number;
-//     time_start: ClockTime;
-//     time_due: ClockTime;
-//     rules: InstanceRule[];
-//     sub_tasks: ForeignKey<string>[];
-//     project?: ForeignKey<string>;
-//     link?: string;
-//     status: TaskStatus;
-// }
-
-// type TaskCreationAttributes = Optional<TaskAttributes, 'status' | 'icon' | 'rules' | 'sub_tasks' >
-
-export class Task extends fug.Model<fug.InferAttributes<Task>, fug.InferCreationAttributes<Task>> {
+export class Task {
     declare icon?: string; // null-ey
     declare title: string; // Required property on creation
     declare duration: number;
-    declare time_start: ClockTime;
-    declare time_due: ClockTime;
-    declare rules: CreationOptional<InstanceRule[]>; // Default property
+    declare reminders: CreationOptional<ForeignKey<string>[]>;
     declare sub_tasks: CreationOptional<ForeignKey<string>[]>;
-    declare project?: ForeignKey<string>;
     declare link: CreationOptional<string>;
     declare status: CreationOptional<TaskStatus>;
 }
 
+// new Task()
+
+export class PlannerTask 
+    extends fug.Model<
+        fug.InferAttributes<PlannerTask>,
+        fug.InferCreationAttributes<PlannerTask>
+    > 
+    implements Task 
+    {
+        declare icon?: string; // null-ey
+        declare title: string; // Required property on creation
+        declare duration: number;
+        declare reminders: CreationOptional<ForeignKey<string>[]>;
+        declare sub_tasks: CreationOptional<ForeignKey<string>[]>;
+        declare link: CreationOptional<string>;
+        declare status: CreationOptional<TaskStatus>;
+
+        declare time_start: ClockTime;
+        declare time_due: ClockTime;
+        declare rules: CreationOptional<InstanceRule[]>; // Default property
+        declare overrides: CreationOptional<TaskOverride[]>; // Default property
+    }
+
+export class ProjectTask 
+    extends fug.Model<
+        fug.InferAttributes<ProjectTask>,
+        fug.InferCreationAttributes<ProjectTask>
+    > 
+    implements Task 
+    {
+    declare icon?: string; // null-ey
+    declare title: string; // Required property on creation
+    declare duration: number;
+    declare reminders: CreationOptional<ForeignKey<string>[]>;
+    declare sub_tasks: CreationOptional<ForeignKey<string>[]>;
+    declare link: CreationOptional<string>;
+    declare status: CreationOptional<TaskStatus>;
+
+    declare projectId: ForeignKey<string>;
+    declare due: ClockTime;
+}
+
 export default (sequelize: Sequelize) => {
-    Task.init({
-        link: {
+    PlannerTask.init({
+        icon: {
             type: fug.DataTypes.STRING,
-            allowNull: false,
-            defaultValue: ""
+            allowNull: true
         },
         title: {
             type: fug.DataTypes.STRING,
             allowNull: false
         },
-        icon: {
+        duration: {
+            type: fug.DataTypes.INTEGER,
+            allowNull: false
+        },
+        reminders: {
+            type: fug.DataTypes.JSON,
+            defaultValue: [],
+            allowNull: false
+        },
+        sub_tasks: {
+            type: fug.DataTypes.JSON,
+            defaultValue: [],
+            allowNull: false
+        },
+        link: {
             type: fug.DataTypes.STRING,
             allowNull: true
         },
-        duration: {
+        status: {
             type: fug.DataTypes.INTEGER,
+            defaultValue: TaskStatus.NOT_STARTED,
             allowNull: false
         },
         time_start: {
@@ -59,22 +97,54 @@ export default (sequelize: Sequelize) => {
         },
         rules: {
             type: fug.DataTypes.JSON,
-            allowNull: false,
-            defaultValue: []
+            defaultValue: [],
+            allowNull: false
+        },
+        overrides: {
+            type: fug.DataTypes.JSON,
+            defaultValue: [],
+            allowNull: false
+        }
+    }, {sequelize})
+
+    ProjectTask.init({
+        icon: {
+            type: fug.DataTypes.STRING,
+            allowNull: true
+        },
+        title: {
+            type: fug.DataTypes.STRING,
+            allowNull: false
+        },
+        duration: {
+            type: fug.DataTypes.INTEGER,
+            allowNull: false
+        },
+        reminders: {
+            type: fug.DataTypes.JSON,
+            defaultValue: [],
+            allowNull: false
         },
         sub_tasks: {
             type: fug.DataTypes.JSON,
-            allowNull: false,
-            defaultValue: []
+            defaultValue: [],
+            allowNull: false
         },
-        project: {
-            type: fug.DataTypes.UUID,
-            allowNull: true,
+        link: {
+            type: fug.DataTypes.STRING,
+            allowNull: true
         },
         status: {
             type: fug.DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: TaskStatus.NOT_STARTED
+            allowNull: false
+        },
+        projectId: {
+            type: fug.DataTypes.UUID,
+            allowNull: false
+        },
+        due: {
+            type: fug.DataTypes.JSON,
+            allowNull: false
         }
     }, {sequelize})
 }

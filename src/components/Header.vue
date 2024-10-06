@@ -1,41 +1,29 @@
 <script setup lang="ts">
-import "../arrayLib.js"
-
 import {Router} from "../router"
 import {PopupDriver} from "../popups"
 import {NewTaskPopup, NewTaskResult} from "../popups/new_task"
 
 import HeaderButton from "./HeaderButton.vue"
 
-import {Task} from "../models/task"
-import { InstanceRule, InstanceRuleType, InstanceRuleWeek, TaskStatus } from "../types"
+import {PlannerTask} from "../models/task"
 
-function openNewTaskPopup(task: Task | null = null) {
-    console.log("Open New Task Popup!")
+function openPlanerTaskPopup(task: PlannerTask | null = null) {
+    print("Open New Task Popup!")
     let inputs = PopupDriver.open(NewTaskPopup, task, async (data: NewTaskResult) => {
-        if (Task == null) {return}
+        if (PlannerTask == null) {return}
 
-        console.log(data)
+        print(data)
 
-        let thisTask = await Task.create({
-            title: "Test Task!",
-            duration: 10000,
-            time_start: {hour: 0, minute: 30},
-            time_due: {hour: 0, minute: 30},
-            // rules: [],
-            // sub_tasks: [],
-            // status: TaskStatus.NOT_STARTED
-        })
+        let thisTask = await PlannerTask.create(data)
 
-        console.log("Created Task!", thisTask.get())
+        print("Created Task!", thisTask.get())
     })
 
     if (inputs != null) { // this is scuffed and ghetto and I hate it and I hate it and it's not right but it works.
-        let startElem: HTMLInputElement = inputs["start"].children[1] as HTMLInputElement 
-        let endElem: HTMLInputElement = inputs["end"].children[1] as HTMLInputElement
-
+        let startElem: HTMLInputElement = inputs["time_start"].children[1] as HTMLInputElement 
+        let endElem: HTMLInputElement = inputs["time_due"].children[1] as HTMLInputElement
         let startChange = (e: Event) => {
-            console.log(startElem.value)
+            print(startElem.value)
             endElem.min = startElem.value
         }
 
@@ -43,7 +31,7 @@ function openNewTaskPopup(task: Task | null = null) {
         startElem.addEventListener("change", startChange)
 
         let endChange = (e: Event) => {
-            console.log(endElem.value)
+            print(endElem.value)
             startElem.max = endElem.value
         }
 
@@ -57,7 +45,7 @@ function openNewTaskPopup(task: Task | null = null) {
 <div id="header">
     <p>{{ Router.header }}</p>
     <div id="header-buttons">
-        <HeaderButton id="add" icon="add" :func="openNewTaskPopup"/>
+        <HeaderButton id="add" icon="add" :func="openPlanerTaskPopup"/>
         <HeaderButton id="notification" icon="notification" :func="() => {console.log(`Opening Notifications!`)}"/>
         <HeaderButton id="settings" icon="settings" :func="() => {console.log(`Opening Settings!`)}"/>
     </div>

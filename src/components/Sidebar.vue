@@ -9,7 +9,7 @@ import {Router, Views} from "../router"
 
 <template>
 <div id="sidebar">
-    <h1 id="calendar-month-header">{{ moment().format("MMMM") }}</h1> 
+    <h1 id="calendar-month-header">{{ moment().format("MMMM") }}</h1>
     <SidebarButton label="TaskList" :func="() => { Router.switch(Views.TASKS); Router.set_header(`TaskListView`) }" />
     <SidebarButton label="Planner" :func="() => { Router.switch(Views.PLANNER); Router.set_header(`PlannerView`) }" />
     <SidebarButton label="FocusSession" :func="() => { Router.switch(Views.FOCUS); Router.set_header(`FocusView`) }" />
