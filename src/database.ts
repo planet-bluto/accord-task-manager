@@ -5,6 +5,7 @@ import initSqlJs from 'sql.js'
 
 import initSchemas from "./database/schemas"
 import {PlannerTask} from "./models/task"
+import { PlannerTasks } from "./persist";
 
 sqlJsAsSqlite3.configure({
   // `sql.js` package default export.
@@ -60,11 +61,16 @@ async function main() {
 
 	sequelize = new Sequelize('sqlite://:memory:', opts)
 
-	sequelize.addHook("afterSave", (doc: any) => {
+	sequelize.addHook("afterSave", async (doc: any) => {
     if (window["SQL_DATABASES" as keyof Object] instanceof Object) {
       let data = Object.values(window["SQL_DATABASES" as keyof Object])[0].export()
       localforage.setItem("main", bufferToBase64(data))
     }
+
+    let tasks = await PlannerTask?.findAll();
+    let cleaned_tasks = (tasks.map((task: any) => task.get({plain:true})))
+
+    PlannerTasks.value = cleaned_tasks
 
         // if (database_file_id && gapi_access_token) {
         //     uploadDatabase(database_folder_id)
@@ -77,7 +83,11 @@ async function main() {
   console.log(PlannerTask)
 
 	let tasks = await PlannerTask?.findAll();
+  let cleaned_tasks = (tasks.map((task: any) => task.get({plain:true})))
 
-	console.log(tasks.map((task: any) => task.get({plain:true})))}
+  PlannerTasks.value = cleaned_tasks
+
+	console.log(cleaned_tasks)
+}
 
 main()

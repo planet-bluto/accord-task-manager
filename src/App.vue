@@ -39,5 +39,6 @@ import {Router, Views} from "./router"
 #main {
   width: 100%;
   height: 100%;
+  overflow-y: scroll;
 }
 </style>
