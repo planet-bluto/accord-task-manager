@@ -17,6 +17,8 @@
   --theme-accent-2: #0a89ff;
   --theme-accent-3: #5ba8ff;
 
+  --theme-danger: #E03C28;
+
   --theme-text-0: #acacac;
   --theme-text-1: #FFF;
 
@@ -112,16 +114,45 @@ p {
 }
 
 .popup-input-multi-panel {
-  display: none;
+  display: flex;
+  gap: 8px;
+}
+
+.popup-input-multi-panel > button {
+  text-transform: capitalize;
+}
+
+.popup-input-multi-panel > button::before {
+  content: "+ ";
+}
+
+.popup-input-multi-inputs {
+  display: flex;
+  gap: 16px;
+  overflow-x: scroll;
+  min-height: 200px;
+  background-color: #ffffff0a;
+  border-radius: 15px;
+  align-items: center;
+}
+
+.popup-input-card-container {
+  max-width: 500px;
+  min-width: 500px;
+  height: 100%;
 }
 
 .popup-input-card{
   /* background: var(--theme-back-3); */
   padding: 15px;
-  width: calc(100% - 30px);
+  /* width: calc(100% - 30px); */
   height: calc(100% - 30px);
   border-radius: 15px;
   border: solid var(--theme-back-1) 5px;
+}
+
+.popup-input-card-remove {
+  background-color: var(--theme-danger);
 }
 
 .popup-input-duration-input-container {
@@ -134,6 +165,86 @@ p {
   width: 100%;
 }
 
+.popup-input-select {
+  font-size: 24px;
+  border-radius: 10px;
+}
+
+.popup-input-mutli-select-checkbox-container {
+  display: flex;
+  gap: 16px;
+}
+
 .popup-header {
   font-size: 40px;
+}
+
+.popup-submit-button {
+  font-size: 48px;
+  border-radius: 15px;
+}
+
+
+
+
+/* BUTTONS */
+
+button {
+  border: none;
+  border-radius: 8px;
+  color: var(--theme-text-1);
+  font-family: 'Montserrat';
+  font-size: 16px;
+  background-color: var(--theme-accent-1);
+  transition-property: filter;
+  transition: 100ms;
+}
+
+button:hover {
+  filter: brightness(1.25);
+}
+
+
+/* SELECT */
+
+select {
+  border: none;
+  border-radius: 8px;
+  color: var(--theme-text-1);
+  font-family: 'Montserrat';
+  font-size: 16px;
+  background-color: var(--theme-back-1);
+  transition-property: filter;
+  transition: 100ms;
+}
+
+select:hover {
+  filter: brightness(1.25);
+}
+
+
+/* SCROLL BARS */
+
+/* width */
+*::-webkit-scrollbar {
+/*  width: 10px;*/
+/*  height: calc(100% - 128px);*/
+  border-radius: 10px;
+}
+
+/* Track */
+*::-webkit-scrollbar-track {
+  background: #0000003c;
+  border-radius: 10px;
+}
+  
+/* Handle */
+*::-webkit-scrollbar-thumb {
+  background: #ffffff1c;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #0000003c;
+  border-radius: 10px;
 }

@@ -1,5 +1,5 @@
 import { Task } from "../models/task"
-import {PopupDriver, HeaderPopupElement, NumberPopupInput, TextPopupInput, SubmitPopupButton, DateTimePopupInput, RepeatsPopupInput, ClockTimePopupInput, DurationPopupInput, MultiPopupInput, CardPopupInput, CalendarDatePopupInput} from "../popups"
+import {PopupDriver, HeaderPopupElement, NumberPopupInput, TextPopupInput, SubmitPopupButton, DateTimePopupInput, RepeatsPopupInput, ClockTimePopupInput, DurationPopupInput, MultiPopupInput, CardPopupInput, CalendarDatePopupInput, SelectPopupInput, MultiSelectPopupInput} from "../popups"
 import { InstanceRuleType, Weekdays } from "../types"
 
 const _ = null // best
@@ -8,12 +8,42 @@ export var NewTaskPopup = [
     [new HeaderPopupElement("New Task")],
     [new TextPopupInput("Title", "title")],
     [new ClockTimePopupInput("Start Time", "time_start"), new DurationPopupInput("Task Duration", "duration"), new ClockTimePopupInput("Due Time", "time_due")],
-    [new MultiPopupInput("Cards", "cards", [], {
-        "_": {label: "Once", input: new CardPopupInput(_, _, _, [
-            [new DateTimePopupInput("Date & Time", "date_time")],
-            [new CalendarDatePopupInput("Date", "date")],
+    [new MultiPopupInput("Rules", "rules", [], {
+        "once": {label: "Once", input: new CardPopupInput(_, _, _, [
+            [new HeaderPopupElement("Once")],
+            [new DateTimePopupInput("Date & Time", "time")],
+        ])},
+        "day": {label: "Days", input: new CardPopupInput(_, _, _, [
+            [new HeaderPopupElement("Daily")],
+            [new CalendarDatePopupInput("From", "from")],
+            [new NumberPopupInput("Every", "every", 1)],
+        ])},
+        "week": {label: "Week", input: new CardPopupInput(_, _, _, [
+            [new HeaderPopupElement("Weekly")],
+            [new MultiSelectPopupInput("Weekdays", "weekdays", Weekdays)],
+            [new NumberPopupInput("Every", "every", 1)],
+        ])},
+        "month": {label: "Month", input: new CardPopupInput(_, _, _, [
+            [new HeaderPopupElement("Monthly")],
+            [new NumberPopupInput("Day", "day", 1, 1, 31)],
+            [new NumberPopupInput("Every", "every", 1)],
+        ])},
+        "year": {label: "Year", input: new CardPopupInput(_, _, _, [
+            [new HeaderPopupElement("Yearly")],
+            [new NumberPopupInput("Month", "month", 1, 1, 12), new NumberPopupInput("Day", "day", 1, 1, 31)],
+            [new NumberPopupInput("Every", "every", 1)],
         ])},
     })],
+    [new MultiPopupInput("Reminders", "reminders", [], {
+        "once": {label: "Once", input: new CardPopupInput(_, _, _, [
+            [new DateTimePopupInput("Date & Time", "time")],
+        ])},
+        "relative": {label: "Relative", input: new CardPopupInput(_, _, _, [
+            [new NumberPopupInput("Days", "days", 0), new NumberPopupInput("Hour", "hour", 0), new NumberPopupInput("Minutes", "minutes", 0)],
+            [new SelectPopupInput(null, "position", ["before", "after"]), new SelectPopupInput(null, "base", ["start", "due"])],
+        ])},
+    })],
+    [new TextPopupInput("Link", "link")],
     [new SubmitPopupButton()],
 ]
 

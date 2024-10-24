@@ -1,7 +1,7 @@
 import moment from "moment"
 
 //// MISC. ////
-export const Weekdays = (["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const)
+export const Weekdays: string[] = (["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const)
 type _Weekdays = (typeof Weekdays)
 export type Weekday = _Weekdays[number]
 
@@ -45,6 +45,14 @@ export function ClockTime_fromDate(date: Date): ClockTime {
     return ClockTime_fromString(moment(date).format("HH:mm"))
 }
 
+export interface DateTime {
+    day: number,
+    month: number,
+    year: number,
+    hour: number,
+    minute: number
+}
+
 
 
 //// TASK ////
@@ -64,6 +72,13 @@ export interface TaskOverride {
     duration?: number,
     time_start?: ClockTime,
     time_due?: ClockTime
+}
+
+export interface SubTask {
+    icon: string,
+    title: string,
+    duration: number,
+    done: boolean
 }
 
 

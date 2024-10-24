@@ -240,7 +240,7 @@ export class TextPopupInput extends PopupInput {
         return container
     }
 
-    value(): any {
+    value(): string | null {
         return (this.elem ? String(this.elem.value) : null)
     }
 
@@ -249,9 +249,120 @@ export class TextPopupInput extends PopupInput {
     }
 }
 
-export class MultiSelectPopupInput extends PopupInput {} // <- 🟥
+export class SelectPopupInput extends PopupInput { // <- 🟥
+    elem?: HTMLSelectElement;
+    options: string[];
 
-export class SelectPopupInput extends PopupInput {} // <- 🟥
+    constructor(label: string | null, key: string | null, options: string[]= [], def: string = "") {
+        super(label, key, def)
+
+        this.options = options
+    }
+
+    compile(): HTMLElement {
+        var container = document.createElement("div")
+        container.classList.add("popup-input-container")
+
+        var label = document.createElement("p")
+        label.classList.add("popup-input-label")
+        label.textContent = this.label
+
+        var select_elem = document.createElement("select")
+        select_elem.multiple = false
+        select_elem.classList.add("popup-input-select")
+        
+        this.options.forEach(option => {
+            let option_elem = document.createElement("option")
+
+            option_elem.value = option
+            option_elem.textContent = option // titleCase PLEASE
+
+            select_elem.appendChild(option_elem)
+        })
+
+        this.elem = select_elem
+
+        container.appendChild(label)
+        container.appendChild(select_elem)
+
+        return container
+    }
+
+    value(): any {
+        return (this.elem ? this.elem.selectedOptions[0].value : null)
+    }
+
+    set(thisValue: string) {
+        if (this.elem) {
+            let index = Array.from(this.elem.options).map(optionElem => optionElem.value).indexOf(thisValue)
+            this.elem.selectedIndex = index
+        }
+    }
+}
+
+export class MultiSelectPopupInput extends PopupInput { // <- 🟥
+    elems: {[index: string]: HTMLInputElement} = {};
+    options: string[];
+
+    constructor(label: string | null, key: string | null, options: string[]= [], def: string[] = []) {
+        super(label, key, def)
+
+        this.options = options
+    }
+
+    compile(): HTMLElement {
+        var container = document.createElement("div")
+        container.classList.add("popup-input-container")
+
+        var label = document.createElement("p")
+        label.classList.add("popup-input-label")
+        label.textContent = this.label
+
+        var checkbox_container = document.createElement("div")
+        checkbox_container.classList.add("popup-input-mutli-select-checkbox-container")
+        
+        this.options.forEach(option => {
+            let this_cont = document.createElement("div")
+
+            let this_label = document.createElement("p")
+            this_label.textContent = option //titleCase PLEASE
+
+            let this_input = document.createElement("input")
+            this_input.type = "checkbox"
+            this.elems[option] = this_input
+
+            this_cont.appendChild(this_label)
+            this_cont.appendChild(this_input)
+
+            checkbox_container.appendChild(this_cont)
+        })
+
+        container.appendChild(label)
+        container.appendChild(checkbox_container)
+
+        return container
+    }
+
+    value(): string[] {
+        let returnArr: string[] = []
+
+        Object.keys(this.elems).forEach(key => {
+            let elem = this.elems[key]
+            if (elem.checked) {
+                returnArr.push(key)
+            }
+        })
+
+        return returnArr
+    }
+
+    set(thisValue: string[]) {
+        Object.keys(this.elems).forEach(key => {
+            let elem = this.elems[key]
+            elem.checked = thisValue.includes(key)
+        })
+    }
+}
 
 type RepeatsObject = {
     amount: number,
@@ -579,6 +690,7 @@ export class MultiPopupInput extends PopupInput {
 
     instanceInput(input: PopupInput, type: string, def: any = null): void {
         let input_container = document.createElement("div")
+        input_container.classList.add("popup-input-card-container")
 
         let this_input = clone(input)
 
@@ -588,7 +700,8 @@ export class MultiPopupInput extends PopupInput {
         let input_elem = this_input.compile()
 
         let subtract_button = document.createElement("button")
-        subtract_button.textContent = "REMOVE"
+        subtract_button.textContent = "X"
+        subtract_button.classList.add("popup-input-card-remove")
 
         subtract_button.addEventListener("click", (e: MouseEvent) => {
             let index = this.active_inputs.indexOf(this_input)
@@ -626,22 +739,33 @@ export class MultiPopupInput extends PopupInput {
         this.inputs_container = document.createElement("div")
         this.inputs_container.classList.add("popup-input-multi-inputs")
 
-        let add_button = document.createElement("button")
-        add_button.textContent = "NEW"
-        add_button.classList.add("popup-input-add-button")
+        // let add_button = document.createElement("button")
+        // add_button.textContent = "NEW"
+        // add_button.classList.add("popup-input-add-button")
 
+        print("uhm??...")
         let add_panel_list = document.createElement("div")
         add_panel_list.classList.add("popup-input-multi-panel")
+        // add_button.appendChild(add_panel_list)
 
-        add_button.addEventListener("click", (e: MouseEvent) => {
-            if (this.template["_"] != null) {
-                this.instanceInput(this.template["_"].input, "_")
-            } else {
-                add_panel_list // <= Show this guy
+        let keys: string[] = Object.keys(this.template)
+
+        add_panel_list.replaceChildren()
+
+        keys.forEach(key => {
+            let key_button = document.createElement("button")
+
+            key_button.textContent = (key == "_" ? "New" : key) // make titleCase function
+            key_button.onclick = e => {
+                e.preventDefault()
+
+                this.instanceInput(this.template[key].input, key)
             }
+
+            add_panel_list.appendChild(key_button)
         })
 
-        bottom_content.appendChild(add_button)
+        bottom_content.appendChild(add_panel_list)
         bottom_content.appendChild(this.inputs_container)
 
         if (label) { container.appendChild(label) }
@@ -696,6 +820,7 @@ export class CardPopupInput extends PopupInput {
 
         this.rows.forEach((row: PopupElement[]) => {
             let row_container = document.createElement("div")
+            row_container.classList.add("popup-line")
 
             row.forEach((element: PopupElement) => {
                 element = clone(element)

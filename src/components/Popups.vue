@@ -24,6 +24,7 @@ import {PopupDriver} from "../popups"
     flex-direction: column;
     padding: 16px;
     gap: 20px;
+    overflow-y: scroll;
 }
 
 #popup-container {
