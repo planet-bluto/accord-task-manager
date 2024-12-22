@@ -5,18 +5,30 @@ import {NewTaskPopup, NewTaskResult} from "../popups/new_task"
 
 import HeaderButton from "./HeaderButton.vue"
 
-import {PlannerTask} from "../models/task"
+import {PlannerTask, PlannerTaskStatic} from "../models/task"
+import { Reminder } from "../models/reminder"
+import { ReminderMetaRelative, ReminderMetaTime, ReminderMetaOnce } from "../types"
 
 function openPlanerTaskPopup(task: PlannerTask | null = null) {
     print("Open New Task Popup!")
-    let inputs = PopupDriver.open(NewTaskPopup, task, async (data: NewTaskResult) => {
+    let inputs = PopupDriver.open(NewTaskPopup(), task, async (data: PlannerTaskStatic) => {
         if (PlannerTask == null) {return}
 
-        print(data)
+        let remindersToCreate = data.reminders
+        data.reminders = []
+        await remindersToCreate.awaitForEach(async (reminder_data: (ReminderMetaRelative | ReminderMetaTime | ReminderMetaOnce)) => {
+            reminder_data.type = Number(reminder_data.type)
+            // print(reminder_data)
+            // let reminder = await Reminder.create({meta: reminder_data})
+            let reminder = new Reminder({meta: reminder_data})
+            data.reminders.push(reminder.id)
+        })
+        
 
-        let thisTask = await PlannerTask.create(data)
+        // let thisTask = await PlannerTask.create(data)
+        let thisTask = new PlannerTask(data)
 
-        print("Created Task!", thisTask.get())
+        print("Created Task!", thisTask)
     })
 
     if (inputs != null) { // this is scuffed and ghetto and I hate it and I hate it and it's not right but it works.

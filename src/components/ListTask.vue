@@ -2,7 +2,6 @@
 import { Task } from '../models/task';
 
 import ReminderBean from './ReminderBean.vue';
-import { Optional } from 'sequelize-browser';
 
 const props = defineProps<{
     task: Task;
@@ -16,7 +15,7 @@ const props = defineProps<{
       <p class="list-task-title">{{ task.title }}</p>
     </div>
     <div class="list-task-left-bottom">
-      <ReminderBean v-for="(reminder) in task.reminders" :reminder="reminder" :task="task"></ReminderBean>
+      <ReminderBean v-for="(reminderId) in task.reminders" :reminderId="reminderId" :task="task"></ReminderBean>
     </div>
   </div>
   <div class="list-task-right"></div>

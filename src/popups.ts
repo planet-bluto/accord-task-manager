@@ -1,8 +1,7 @@
 import moment from 'moment'
 import {Ref, ref} from 'vue'
-import { CalendarDate, CalendarDate_fromDate, CalendarDate_fromString, CalendarDate_toString, ClockTime, ClockTime_fromDate, ClockTime_fromString, ClockTime_toString, Weekday } from './types'
+import { CalendarDate, CalendarDate_fromDate, CalendarDate_fromString, CalendarDate_toString, CalendarWeek, CalendarWeek_fromString, CalendarWeek_toString, ClockTime, ClockTime_fromDate, ClockTime_fromString, ClockTime_toString, Weekday } from './types'
 import { HOUR, MINUTE, parseDuration } from './time'
-import { parse } from 'vue/compiler-sfc'
 
 interface InputDictionary {[index: string]: HTMLElement}
 
@@ -251,12 +250,22 @@ export class TextPopupInput extends PopupInput {
 
 export class SelectPopupInput extends PopupInput { // <- 🟥
     elem?: HTMLSelectElement;
-    options: string[];
+    options: {[text: string]: (string | number | boolean)};
+    cast: ("string" | "number" | "boolean");
 
-    constructor(label: string | null, key: string | null, options: string[]= [], def: string = "") {
+    constructor(label: string | null, key: string | null, options: (string[] | {[text: string]: (string | number | boolean)}) = [], def: number = 0, cast: ("string" | "number" | "boolean") = "string") {
         super(label, key, def)
 
-        this.options = options
+        if (Array.isArray(options)) {
+            this.options = {}
+            options.forEach(option => {
+                this.options[option] = option
+            })
+        } else {
+            this.options = options
+        }
+
+        this.cast = cast
     }
 
     compile(): HTMLElement {
@@ -271,14 +280,17 @@ export class SelectPopupInput extends PopupInput { // <- 🟥
         select_elem.multiple = false
         select_elem.classList.add("popup-input-select")
         
-        this.options.forEach(option => {
+        Object.keys(this.options).forEach(text => {
+            let option = this.options[text]
             let option_elem = document.createElement("option")
 
-            option_elem.value = option
-            option_elem.textContent = option // titleCase PLEASE
+            option_elem.value = String(option)
+            option_elem.textContent = text
 
             select_elem.appendChild(option_elem)
         })
+
+        select_elem.selectedIndex = this.def
 
         this.elem = select_elem
 
@@ -289,12 +301,26 @@ export class SelectPopupInput extends PopupInput { // <- 🟥
     }
 
     value(): any {
-        return (this.elem ? this.elem.selectedOptions[0].value : null)
+        if (this.elem) {
+            let finalVal: any = this.elem.selectedOptions[0].value
+            switch (this.cast) {
+                case "number":
+                    finalVal = Number(this.elem.selectedOptions[0].value)
+                break;
+                case "boolean":
+                    finalVal = (this.elem.selectedOptions[0].value == "true")
+                break;
+            }
+
+            return finalVal
+        } else {
+            return null
+        }
     }
 
-    set(thisValue: string) {
+    set(thisValue: any) {
         if (this.elem) {
-            let index = Array.from(this.elem.options).map(optionElem => optionElem.value).indexOf(thisValue)
+            let index = Array.from(this.elem.options).map(optionElem => optionElem.value).indexOf(String(thisValue))
             this.elem.selectedIndex = index
         }
     }
@@ -463,7 +489,7 @@ export class DateTimePopupInput extends PopupInput {
         return (this.elem ? new Date(this.elem.value).valueOf() : null)
     }
 
-    set(thisValue: Date) {
+    set(thisValue: number) {
         if (this.elem) { this.elem.value = new Date(thisValue).toDateTimeLocal() }
     }
 }
@@ -551,6 +577,8 @@ export class CalendarDatePopupInput extends PopupInput {
 
         elem.type = "date"
         if (this.def != null) {
+            print(this.def)
+            print(CalendarDate_toString(this.def))
             elem.defaultValue = CalendarDate_toString(this.def)
             elem.value = CalendarDate_toString(this.def)
         }
@@ -569,6 +597,51 @@ export class CalendarDatePopupInput extends PopupInput {
 
     set(thisValue: CalendarDate) {
         if (this.elem) { this.elem.value = CalendarDate_toString(thisValue) }
+    }
+}
+
+export class WeekPopupInput extends PopupInput {
+    elem: HTMLInputElement | null = null
+
+    constructor(label: string | null, key: string | null, def: CalendarWeek = ({week: moment().week(), year: moment().year()})) {
+        super(label, key, def)
+    }
+
+    compile(): HTMLElement {
+        var container = document.createElement("div")
+
+        container.classList.add("popup-input-container")
+
+        var label = document.createElement("p")
+
+        label.classList.add("popup-input-label")
+        label.textContent = this.label
+
+        var elem = document.createElement("input")
+
+        this.elem = elem
+
+        elem.classList.add("popup-input")
+        elem.classList.add("popup-week-input")
+
+        elem.type = "week"
+        if (this.def != null) {
+            elem.defaultValue = CalendarWeek_toString(this.def)
+            elem.value = CalendarWeek_toString(this.def)
+        }
+
+        container.appendChild(label)
+        container.appendChild(elem)
+
+        return container
+    }
+
+    value(): any {
+        return (this.elem ? CalendarWeek_fromString(this.elem.value) : null)
+    }
+
+    set(thisValue: CalendarWeek) {
+        if (this.elem) { this.elem.value = CalendarWeek_toString(thisValue) }
     }
 }
 
@@ -675,24 +748,28 @@ function clone<T>(instance: T): T {
     return copy;
 }
 
+// const clone = structuredClone
+
 export class MultiPopupInput extends PopupInput {
-    template: {[index: (number | string | "_")]: {label: string | null, input: PopupInput}};
+    template: {[index: (number | string | "_")]: {label: string | null, input: (() => PopupInput)}};
     active_inputs: PopupInput[] = []
     type_pointer: (number | string)[] = []
 
     inputs_container: HTMLDivElement = document.createElement("div")
 
-    constructor(label: string | null, key: string | null, def: [] = [], template: {[index: (number | string | "_")]: {label: string | null, input: PopupInput}} = {}) {
+    constructor(label: string | null, key: string | null, def: [] = [], template: {[index: (number | string | "_")]: {label: string | null, input: (() => PopupInput)}} = {}) {
         super(label, key, def)
 
         this.template = template
     }
 
-    instanceInput(input: PopupInput, type: string, def: any = null): void {
+    instanceInput(this_input: PopupInput, type: string, def: any = null): void {
+        print("Type: ", type)
         let input_container = document.createElement("div")
         input_container.classList.add("popup-input-card-container")
 
-        let this_input = clone(input)
+        // let this_input = clone(input)
+        // print("Clone result: ", this_input)
 
         this.active_inputs.push(this_input)
         this.type_pointer.push(type)
@@ -755,11 +832,11 @@ export class MultiPopupInput extends PopupInput {
         keys.forEach(key => {
             let key_button = document.createElement("button")
 
-            key_button.textContent = (key == "_" ? "New" : key) // make titleCase function
+            key_button.textContent = (key == "_" ? "New" : this.template[key].label) // make titleCase function
             key_button.onclick = e => {
                 e.preventDefault()
 
-                this.instanceInput(this.template[key].input, key)
+                this.instanceInput(this.template[key].input(), key)
             }
 
             add_panel_list.appendChild(key_button)
@@ -781,6 +858,7 @@ export class MultiPopupInput extends PopupInput {
 
         this.active_inputs.forEach((input: PopupInput, index) => {
             let returning_template = input.value()
+            print(`Multi [${index}]: `, input.value())
 
             if (returning_template instanceof Object) {
                 returning_template["type"] = this.type_pointer[index]
@@ -796,16 +874,16 @@ export class MultiPopupInput extends PopupInput {
         Object.keys(thisValue).forEach((key: string) => {
             let entry = thisValue[key]
 
-            this.instanceInput(this.template[entry.type].input, entry.type, entry.value)
+            this.instanceInput(this.template[entry.type].input(), entry.type, entry.value)
         })
     }
 }
 
 export class CardPopupInput extends PopupInput {
-    rows: PopupElement[][]
+    rows: (() => PopupElement[][]);
     active_elems: PopupElement[] = [];
 
-    constructor(label: string | null, key: string | null, def: any = null, rows: PopupElement[][] = []) {
+    constructor(label: string | null, key: string | null, def: any = null, rows: (() => PopupElement[][]) = (() => [])) {
         super(label, key, def)
 
         this.rows = rows
@@ -814,17 +892,24 @@ export class CardPopupInput extends PopupInput {
     compile(): HTMLElement {
         this.active_elems = []
         
+        let whole_container = document.createElement("div")
+        whole_container.classList.add("popup-input-card-whole-container")
+
+        if (this.label) {
+            let label = document.createElement("p")
+            label.classList.add("popup-input-label")
+            label.textContent = this.label
+            whole_container.appendChild(label)
+        }
+
         let card_container = document.createElement("div")
         card_container.classList.add("popup-input-card")
 
-
-        this.rows.forEach((row: PopupElement[]) => {
+        this.rows().forEach((row: PopupElement[]) => {
             let row_container = document.createElement("div")
             row_container.classList.add("popup-line")
 
             row.forEach((element: PopupElement) => {
-                element = clone(element)
-
                 this.active_elems.push(element)
 
                 let elem = element.compile()
@@ -835,14 +920,17 @@ export class CardPopupInput extends PopupInput {
             card_container.appendChild(row_container)
         })
 
-        return card_container
+        whole_container.appendChild(card_container)
+
+        return whole_container
     }
 
     value(): any {
         let toReturn = {}
 
         let active_inputs = this.active_elems.filter(popup_elem => (popup_elem instanceof PopupInput))
-        active_inputs.forEach((popup_input: PopupInput) => {
+        active_inputs.forEach((popup_input: PopupInput, index: number) => {
+            print(`Card [${index}]: `, popup_input.value())
             toReturn[popup_input.key as keyof Object] = popup_input.value()
         })
 

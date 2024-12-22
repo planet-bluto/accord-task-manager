@@ -1,7 +1,7 @@
 import moment from "moment"
 
 //// MISC. ////
-export const Weekdays: string[] = (["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const)
+export const Weekdays: string[] = (["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const)
 type _Weekdays = (typeof Weekdays)
 export type Weekday = _Weekdays[number]
 
@@ -11,19 +11,22 @@ export interface CalendarDate {
     year: number
 }
 export function CalendarDate_toString(date: CalendarDate): string {
-    return `${String(date.month).padStart(2, "0")}-${String(date.day).padStart(2, "0")}-${date.year}`
+    return `${date.year}-${String(date.month+1).padStart(2, "0")}-${String(date.day).padStart(2, "0")}`
 }
 export function CalendarDate_fromString(str: string): CalendarDate {
     let bits: string[] = str.split("-")
 
     let year = Number(bits[0])
-    let month = Number(bits[1])
+    let month = Number(bits[1])-1
     let day = Number(bits[2])
 
     return ({month, day, year} as CalendarDate)
 }
 export function CalendarDate_fromDate(date: Date): CalendarDate {
     return CalendarDate_fromString(moment(date).format("YYYY-MM-DD"))
+}
+export function CalendarDate_isEqual(dateA: CalendarDate, dateB: CalendarDate): boolean {
+    return (CalendarDate_toString(dateA) == CalendarDate_toString(dateB))
 }
 
 export interface ClockTime {
@@ -53,6 +56,21 @@ export interface DateTime {
     minute: number
 }
 
+export interface CalendarWeek {
+    week: number,
+    year: number
+}
+export function CalendarWeek_toString(week: CalendarWeek): string {
+    return `${week.year}-W${week.week}`
+}
+export function CalendarWeek_fromString(str: string): CalendarWeek {
+    let bits = str.split("-")
+    let year = Number(bits.shift())
+    let week = Number(bits.shift()?.slice(1))
+
+
+    return {week, year}
+}
 
 
 //// TASK ////
@@ -106,33 +124,77 @@ export interface InstanceRuleSingle extends InstanceRule {
 // DAY
 export interface InstanceRuleDay extends InstanceRule {
     type: InstanceRuleType.DAY,
-    from: CalendarDate,
-    every: number
+    every: number, // 1 == Everyday, 2 == Every Other, etc.
+    from: CalendarDate // "Starting On" Date
 }
 // WEEK
 export interface InstanceRuleWeek extends InstanceRule {
     type: InstanceRuleType.WEEK,
     weekdays: Weekday[],
-    every: number
+    every: number, // 1 == Every Week, 2 == Every Other, etc.
+    from: CalendarWeek // "Starting On" Week
 }
 // MONTH
 export interface InstanceRuleMonth extends InstanceRule {
     type: InstanceRuleType.MONTH,
     day: number,
-    every: number
+    every: number, // 1 == Every Month, 2 == Every Other, etc.
+    from: { // "Starting On" Month
+        month: number,
+        year: number
+    }
 }
 // YEAR
 export interface InstanceRuleYear extends InstanceRule {
     type: InstanceRuleType.YEAR,
     month: number,
     day: number,
-    every: number
+    every: number, // 1 == Every Year, 2 == Every Other, etc.
+    from: number // "Starting On" Year
 }
 
 
 
 //// REMINDER... is a schema 💔 ////
+export interface ReminderMeta {
+    type: ReminderType;
+}
+
+export interface ReminderMetaRelative extends ReminderMeta {
+    type: ReminderType.RELATIVE;
+    base: "start" | "due";
+    position: "before" | "after";
+    minutes: number;
+    hours: number;
+    days: number;
+}
+
+export interface ReminderMetaTime extends ReminderMeta {
+    type: ReminderType.TIME;
+    days: number;
+    time: ClockTime;
+}
+
+export interface ReminderMetaOnce extends ReminderMeta {
+    type: ReminderType.ONCE;
+    time: DateTime;
+}
+
 export enum ReminderType {
+    RELATIVE,
+    ONCE,
     TIME,
     LOCATION
+}
+
+
+
+//// CalendarElement ////
+export interface CalendarElementDateObject {
+    today: boolean,
+    date: number,
+    month: number,
+    year: number
+    thisMonth: boolean,
+    calendar_date: CalendarDate
 }

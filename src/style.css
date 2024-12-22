@@ -23,7 +23,7 @@
   --theme-text-1: #FFF;
 
   --gap: 16px;
-  --sidebar-width: 360px;
+  --sidebar-width: 295px;
 }
 
 body {
@@ -133,13 +133,18 @@ p {
   min-height: 200px;
   background-color: #ffffff0a;
   border-radius: 15px;
-  align-items: center;
+  /* align-items: center; */
 }
 
 .popup-input-card-container {
   max-width: 500px;
   min-width: 500px;
   height: 100%;
+}
+
+.popup-input-card-whole-container {
+  height: fit-content;
+  width: 100%;
 }
 
 .popup-input-card{

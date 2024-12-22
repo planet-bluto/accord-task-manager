@@ -9,6 +9,9 @@ import FocusSessionView from "./components/views/FocusSession.vue"
 import Popups from "./components/Popups.vue"
 
 import {Router, Views} from "./router"
+import { CalendarDate_fromDate } from "./types"
+
+Router.switch_to_date(CalendarDate_fromDate(new Date()))
 </script>
 
 <template>
@@ -29,7 +32,7 @@ import {Router, Views} from "./router"
 
 <style scoped>
 #right {
-  width: 100%;
+  width: calc(100% - (var(--sidebar-width) + var(--gap)));
   height: 100%;
   display: flex;
   flex-direction: column;
