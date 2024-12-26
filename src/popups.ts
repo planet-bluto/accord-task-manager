@@ -1,19 +1,27 @@
 import moment from 'moment'
-import {Ref, ref} from 'vue'
+import {nextTick, Ref, ref} from 'vue'
 import { CalendarDate, CalendarDate_fromDate, CalendarDate_fromString, CalendarDate_toString, CalendarWeek, CalendarWeek_fromString, CalendarWeek_toString, ClockTime, ClockTime_fromDate, ClockTime_fromString, ClockTime_toString, Weekday } from './types'
 import { HOUR, MINUTE, parseDuration } from './time'
+import { Snowflake } from '@sapphire/snowflake';
+const snowflake = new Snowflake(SNOWFLAKE_EPOCH);
 
 interface InputDictionary {[index: string]: HTMLElement}
+
+const elemToClassCache: Map<HTMLElement, string> = new Map()
+const classToElemCache: Map<string, HTMLElement> = new Map()
 
 class PopupDriverClass {
     in_popup: Ref<Boolean> = ref(false)
     current_elems: Ref<PopupElement[]> = ref([])
     submitFunc: Function | null = null
 
-    open(lines: PopupElement[][], inputData: Object | null = null, submitFunc: Function | null = null): InputDictionary | null {
+    open(lines: PopupElement[][], inputData: Object | null = null, submitFunc: Function | null = null): {inputs: InputDictionary, elems: PopupElement[], html_elems: HTMLElement[]} | null {
         this.submitFunc = submitFunc
 
+        elemToClassCache.clear()
+        classToElemCache.clear()
         let all_elems: PopupElement[] = []
+        let all_html_elems: HTMLElement[] = []
         let input_dict: InputDictionary = {}
         
         this.in_popup.value = true
@@ -33,9 +41,11 @@ class PopupDriverClass {
                 let elem = elem_template.compile()
                 line.appendChild(elem)
                 all_elems.push(elem_template)
+                all_html_elems.push(elem)
                 
                 if (elem_template instanceof PopupInput) {
                     input_dict[elem_template.key as string] = elem
+                    line.setAttribute("has_property_"+elem_template.key, "true")
                 }
             })
 
@@ -56,7 +66,7 @@ class PopupDriverClass {
             })
         }
 
-        return input_dict
+        return {inputs: input_dict, elems: all_elems, html_elems: all_html_elems}
     }
 
     close(submit = false) {
@@ -79,9 +89,23 @@ class PopupDriverClass {
 //////////// Element Declarations ////////////
 
 export class PopupElement {
-    compile(): HTMLElement {
+    id: string;
+
+    constructor() {
+        this.id = String(snowflake.generate())
+    }
+
+    _compile(): HTMLElement {
         var elem = document.createElement("div")
 
+        return elem
+    }
+
+    compile(): HTMLElement {
+        let elem = this._compile()
+        elemToClassCache.set(elem, this.id)
+        classToElemCache.set(this.id, elem)
+        print(elemToClassCache, classToElemCache)
         return elem
     }
 }
@@ -94,10 +118,29 @@ export class HeaderPopupElement extends PopupElement {
         this.text = text
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var elem = document.createElement("div")
 
         elem.classList.add("popup-header")
+
+        elem.textContent = this.text
+
+        return elem
+    }
+}
+
+export class SubHeaderPopupElement extends PopupElement {
+    text: string;
+
+    constructor(text: string) {
+        super()
+        this.text = text
+    }
+
+    _compile(): HTMLElement {
+        var elem = document.createElement("div")
+
+        elem.classList.add("popup-subheader")
 
         elem.textContent = this.text
 
@@ -112,7 +155,7 @@ export class SubmitPopupButton extends PopupElement {
         super()
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         this.button_elem = document.createElement("button")
 
         this.button_elem.classList.add("popup-button")
@@ -128,12 +171,40 @@ export class SubmitPopupButton extends PopupElement {
     }
 }
 
+export class PopupButton extends PopupElement {
+    button_elem: HTMLElement | null = null
+    label: string;
+    func: () => void;
+
+    constructor(label, func) {
+        super()
+        this.label = label
+        this.func = func
+    }
+
+    _compile(): HTMLElement {
+        this.button_elem = document.createElement("button")
+
+        this.button_elem.classList.add("popup-button")
+        this.button_elem.classList.add("popup-submit-button")
+
+        this.button_elem.textContent = this.label
+
+        this.button_elem.addEventListener("click", (e: MouseEvent) => {
+            this.func()
+        })
+
+        return this.button_elem
+    }
+}
+
 //////////// Input Declarations ////////////////
 
 export class PopupInput extends PopupElement {
     label: string | null
     key: string | null
     def: any = null
+    nulled: boolean = false
 
     constructor(label: string | null, key: string | null, def: any = null) {
         super()
@@ -151,6 +222,67 @@ export class PopupInput extends PopupElement {
     }
 }
 
+export class CheckboxPopupInput extends PopupInput {
+    elem: HTMLInputElement | null = null
+    label_elem: HTMLParagraphElement | null = null
+
+    constructor(label: string | null, key: string | null, def: boolean = false) {
+        super(label, key, def)
+    }
+
+    _compile(): HTMLElement {
+        let cont = document.createElement("div")
+        cont.classList.add("popup-checkbox-element")
+
+        this.elem = document.createElement("input")
+        this.elem.type = "checkbox"
+        this.elem.setAttribute("task_override_checkbox", "")
+        cont.appendChild(this.elem)
+        this.elem.checked = this.def
+
+        this.label_elem = document.createElement("p")
+        this.label_elem.textContent = this.label
+        cont.appendChild(this.label_elem)
+
+        return cont
+    }
+
+    value(): boolean {
+        return (this.elem ? this.elem.checked : false)
+    }
+
+    set(thisValue: boolean) {
+        if (this.elem) { this.elem.checked = thisValue; print("CHECKED... set!") }
+    }
+}
+
+export class TaskOverrideCheckboxPopupInput extends CheckboxPopupInput {
+    _compile(): HTMLElement {
+        let cont = super._compile()
+
+        const toggleOverride = () => {
+            let card_elem = (this.elem.parentNode.parentNode.parentNode as HTMLElement)
+            let popupLines = [card_elem.querySelector("*[has_property_time_start=true]"), card_elem.querySelector("*[has_property_duration=true]"), card_elem.querySelector("*[has_property_time_due=true]")]
+            print(popupLines)
+            popupLines.forEach(popupLine => {
+                popupLine.toggleAttribute("hidden")
+            })
+        }
+
+        nextTick().then(() => {
+            if (!this.elem.checked) {toggleOverride()}
+        })
+        this.elem.onchange = toggleOverride
+
+        this.label_elem.onclick = e => {
+            this.elem.checked = (!this.elem.checked)
+            toggleOverride()
+        }
+
+        return cont
+    }
+}
+
 export class NumberPopupInput extends PopupInput {
     elem: HTMLInputElement | null = null
     min: number
@@ -163,7 +295,7 @@ export class NumberPopupInput extends PopupInput {
         this.max = max
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
 
         container.classList.add("popup-input-container")
@@ -210,7 +342,7 @@ export class TextPopupInput extends PopupInput {
         super(label, key, def)
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
 
         container.classList.add("popup-input-container")
@@ -268,7 +400,7 @@ export class SelectPopupInput extends PopupInput { // <- 🟥
         this.cast = cast
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
         container.classList.add("popup-input-container")
 
@@ -336,7 +468,7 @@ export class MultiSelectPopupInput extends PopupInput { // <- 🟥
         this.options = options
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
         container.classList.add("popup-input-container")
 
@@ -403,7 +535,7 @@ export class RepeatsPopupInput extends PopupInput {
         super(label, key, def)
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
         container.classList.add("popup-input-container")
 
@@ -454,7 +586,7 @@ export class DateTimePopupInput extends PopupInput {
         this.max = max
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
 
         container.classList.add("popup-input-container")
@@ -506,7 +638,7 @@ export class ClockTimePopupInput extends PopupInput {
         this.max = max
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
 
         container.classList.add("popup-input-container")
@@ -558,7 +690,7 @@ export class CalendarDatePopupInput extends PopupInput {
         this.max = max
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
 
         container.classList.add("popup-input-container")
@@ -607,7 +739,7 @@ export class WeekPopupInput extends PopupInput {
         super(label, key, def)
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         var container = document.createElement("div")
 
         container.classList.add("popup-input-container")
@@ -654,7 +786,7 @@ export class DurationPopupInput extends PopupInput {
         super(label, key, def)
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         let container = document.createElement("div")
 
         container.classList.add("popup-input-container")
@@ -793,10 +925,12 @@ export class MultiPopupInput extends PopupInput {
 
         this.inputs_container.appendChild(input_container)
 
+        print("[CardInput] this_input: ", this_input)
+
         this_input.set(def) // <- motherfuck
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         this.active_inputs = []
 
         let container = document.createElement("div")
@@ -870,11 +1004,11 @@ export class MultiPopupInput extends PopupInput {
         return toReturn
     }
     
-    set(thisValue: {[index: string]: {type: string, value: any}}) {
-        Object.keys(thisValue).forEach((key: string) => {
+    set(thisValue: {[index: string | number]: {type: string, value: any}}) {
+        Object.keys(thisValue).forEach((key: any) => {
             let entry = thisValue[key]
-
-            this.instanceInput(this.template[entry.type].input(), entry.type, entry.value)
+            print("KEY: ", key, " ENTRY: ", entry)
+            this.instanceInput(this.template[entry.type].input(), entry.type, entry)
         })
     }
 }
@@ -889,7 +1023,7 @@ export class CardPopupInput extends PopupInput {
         this.rows = rows
     }
 
-    compile(): HTMLElement {
+    _compile(): HTMLElement {
         this.active_elems = []
         
         let whole_container = document.createElement("div")
@@ -914,6 +1048,10 @@ export class CardPopupInput extends PopupInput {
 
                 let elem = element.compile()
 
+                if (element instanceof PopupInput) {
+                    row_container.setAttribute("has_property_"+element.key, "true")
+                }
+
                 row_container.appendChild(elem)
             })
 
@@ -930,24 +1068,28 @@ export class CardPopupInput extends PopupInput {
 
         let active_inputs = this.active_elems.filter(popup_elem => (popup_elem instanceof PopupInput))
         active_inputs.forEach((popup_input: PopupInput, index: number) => {
-            print(`Card [${index}]: `, popup_input.value())
-            toReturn[popup_input.key as keyof Object] = popup_input.value()
+            // print(`Card [${index}]: `, popup_input.value())
+            print(popup_input, classToElemCache.get(popup_input.id))
+            if (!(popup_input.nulled || classToElemCache.get(popup_input.id).parentElement.hasAttribute("hidden"))) {
+                toReturn[popup_input.key as keyof Object] = popup_input.value()
+            }
         })
 
         return toReturn
     }
 
     set(thisValue: Object) {
+        print("[CardInput] thisValue: ", thisValue)
         if (thisValue == null) { return; }
 
         let inputs: PopupInput[] = this.active_elems.filter(elem_template => elem_template instanceof PopupInput)
         Object.keys(thisValue).forEach((key: string | null) => {
             let value = thisValue[key as keyof Object]
             let this_elem_template = inputs.find(elem_template => elem_template.key == key)
-
+            print("[CardInput] this_elem_template: ", this_elem_template)
             this_elem_template?.set(value)
         })
     }
 }
 
-export var PopupDriver = new PopupDriverClass()
+export const PopupDriver = new PopupDriverClass()

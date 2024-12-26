@@ -4,33 +4,31 @@ import { Ref, ref } from 'vue';
 
 import CalendarDate from "./CalendarDate.vue"
 import { CalendarElementDateObject } from '../types';
+import { currMonth, currYear } from '../persist';
 
 moment.updateLocale('en', {
     week : { dow : 0 }
 })
 
-var currMonth = ref(Number(moment().get("month")))
-var currYear = ref(Number(moment().get("year")))
-
 var dates: Ref<CalendarElementDateObject[]> = ref([])
 
 function setMonth(month_idx: number, year: number) {
-  print("month_idx: ", month_idx)
-  print("year: ", year)
+  // print("month_idx: ", month_idx)
+  // print("year: ", year)
 
   let today = moment().format("MM/DD/YYYY")
 
   let monthDate = moment().date(1).month(month_idx).year(year)
-  print("monthDate: ", monthDate.format("MM/DD/YYYY"))
+  // print("monthDate: ", monthDate.format("MM/DD/YYYY"))
 
   let currMonthDayCount = monthDate.endOf("month").date()
-  print("currMonthDayCount: ", currMonthDayCount)
+  // print("currMonthDayCount: ", currMonthDayCount)
 
   let prevMonthDayCount = monthDate.subtract(1, "month").endOf("month").date()
-  print("prevMonthDayCount: ", prevMonthDayCount)
+  // print("prevMonthDayCount: ", prevMonthDayCount)
 
   let currMonthStartingWeekDay = monthDate.weekday()
-  print("currMonthStartingWeekDay: ", currMonthStartingWeekDay)
+  // print("currMonthStartingWeekDay: ", currMonthStartingWeekDay)
 
   let i = 0
   let iDate = monthDate.clone()
@@ -48,18 +46,32 @@ function setMonth(month_idx: number, year: number) {
       }
       dates.value.push(entry)
 
-      print(`[${x}, ${y}] `, entry)
+      // print(`[${x}, ${y}] `, entry)
       i++
       iDate.add(1, "day")
     }
   }
 }
 
+function addMonth(val) {
+  let newMoment = moment({
+    month: currMonth.value,
+    year: currYear.value
+  }).add(val, "month")
+
+  currMonth.value = newMoment.get("month")
+  currYear.value = newMoment.get("year")
+
+  setMonth(currMonth.value, currYear.value)
+}
+
 setMonth(currMonth.value, currYear.value)
+
+function calendarScroll(e) { (e.deltaY > 0 ? addMonth(1) : addMonth(-1)) }
 </script>
 
 <template>
-<div id="calendar">
+<div id="calendar" @wheel="calendarScroll">
   <div id="calender-top"></div>
   <div id="calender-bottom">
     <CalendarDate v-for="(date) in dates" :entry="date"></CalendarDate>

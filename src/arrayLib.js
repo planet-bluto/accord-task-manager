@@ -20,13 +20,7 @@ Array.prototype.random = function () {
 }
 
 Array.prototype.awaitForEach = async function(func) {
-	var proms = []
-
-	this.forEach((...args) => {
-		proms.push(func(...args))
-	})
-
-	return await Promise.all(proms)
+	return (await Promise.all(this.map((...args) => func(...args))))
 }
 
 Array.prototype.asyncForEach = async function(func) {

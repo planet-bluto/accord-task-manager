@@ -1,7 +1,9 @@
 import moment from "moment"
-import { Task } from "../models/task"
-import {HeaderPopupElement, NumberPopupInput, TextPopupInput, SubmitPopupButton, DateTimePopupInput, RepeatsPopupInput, ClockTimePopupInput, DurationPopupInput, MultiPopupInput, CardPopupInput, CalendarDatePopupInput, SelectPopupInput, MultiSelectPopupInput, WeekPopupInput} from "../popups"
-import { InstanceRuleType, ReminderType, Weekdays } from "../types"
+import { PlannerTask, PlannerTaskStatic, Task } from "../models/task"
+import {HeaderPopupElement, NumberPopupInput, TextPopupInput, SubmitPopupButton, DateTimePopupInput, RepeatsPopupInput, ClockTimePopupInput, DurationPopupInput, MultiPopupInput, CardPopupInput, CalendarDatePopupInput, SelectPopupInput, MultiSelectPopupInput, WeekPopupInput, PopupDriver, SubHeaderPopupElement, CheckboxPopupInput, TaskOverrideCheckboxPopupInput} from "../popups"
+import { InstanceRuleType, ReminderMetaOnce, ReminderMetaRelative, ReminderMetaTime, ReminderType, Weekdays } from "../types"
+import { Reminder } from "../models/reminder"
+import { PlannerTasks, Reminders } from "../persist"
 
 const _ = null // best
 
@@ -20,40 +22,49 @@ const MonthSelectPopupTemplate = {
     "December": 11,
 }
 
+function instanceRuleMake(elements: any[]) {
+    elements.push([new TaskOverrideCheckboxPopupInput("Time Override", "has_override")])
+    // elements.push([new SubHeaderPopupElement("Time Override")])
+    elements.push([new ClockTimePopupInput("Start Time", "time_start")])
+    elements.push([new ClockTimePopupInput("Due Time", "time_due")])
+    elements.push([new DurationPopupInput("Task Duration", "duration")])
+    return (() => elements)
+}
+
 export const NewTaskPopup = () => [
     [new HeaderPopupElement("New Task")],
     [new TextPopupInput("Title", "title")],
     [new ClockTimePopupInput("Start Time", "time_start"), new DurationPopupInput("Task Duration", "duration"), new ClockTimePopupInput("Due Time", "time_due")],
     [new MultiPopupInput("Rules", "rules", [], {
-        [InstanceRuleType.SINGLE]: {label: "Once", input: (() => new CardPopupInput(_, _, _, (() => [
+        [InstanceRuleType.SINGLE]: {label: "Once", input: () => new CardPopupInput(_, _, _, instanceRuleMake([
             [new HeaderPopupElement("Once")],
             [new CalendarDatePopupInput("Date", "date")],
-        ])))},
-        [InstanceRuleType.DAY]: {label: "Days", input: () => new CardPopupInput(_, _, _, () => [
+        ]))},
+        [InstanceRuleType.DAY]: {label: "Days", input: () => new CardPopupInput(_, _, _, instanceRuleMake([
             [new HeaderPopupElement("Daily")],
             [new CalendarDatePopupInput("Starting on", "from")],
             [new NumberPopupInput("Every", "every", 1, 1)],
-        ])},
-        [InstanceRuleType.WEEK]: {label: "Week", input: () => new CardPopupInput(_, _, _, () => [
+        ]))},
+        [InstanceRuleType.WEEK]: {label: "Week", input: () => new CardPopupInput(_, _, _, instanceRuleMake([
             [new HeaderPopupElement("Weekly")],
             [new MultiSelectPopupInput("", "weekdays", Weekdays)],
             [new WeekPopupInput("Starting On", "from", {week: moment().week(), year: moment().year()})],
             [new NumberPopupInput("Every", "every", 1, 1)],
-        ])},
-        [InstanceRuleType.MONTH]: {label: "Month", input: () => new CardPopupInput(_, _, _, () => [
+        ]))},
+        [InstanceRuleType.MONTH]: {label: "Month", input: () => new CardPopupInput(_, _, _, instanceRuleMake([
             [new HeaderPopupElement("Monthly")],
             [new NumberPopupInput("Day", "day", 1, 1, 31)],
             [new CardPopupInput("Starting On", "from", [], () => [
                 [new SelectPopupInput("Month", "month", MonthSelectPopupTemplate, moment().month(), "number"), new NumberPopupInput("Year", "year", moment().year(), 1970, 3070)]
             ])],
             [new NumberPopupInput("Every", "every", 1, 1)],
-        ])},
-        [InstanceRuleType.YEAR]: {label: "Year", input: () => new CardPopupInput(_, _, _, () => [
+        ]))},
+        [InstanceRuleType.YEAR]: {label: "Year", input: () => new CardPopupInput(_, _, _, instanceRuleMake([
             [new HeaderPopupElement("Yearly")],
             [new SelectPopupInput("Month", "month", MonthSelectPopupTemplate, moment().month(), "number"), new NumberPopupInput("Day", "day", moment().day(), 1, 31)],
             [new NumberPopupInput("Starting On", "from", moment().year(), 1970, 3070)],
             [new NumberPopupInput("Every", "every", 1, 1)],
-        ])},
+        ]))},
     })],
     [new MultiPopupInput("Reminders", "reminders", [], {
         [ReminderType.ONCE]: {label: "Once", input: () => new CardPopupInput(_, _, _, () => [ // ReminderTimeExact
@@ -72,117 +83,78 @@ export const NewTaskPopup = () => [
     [new SubmitPopupButton()],
 ]
 
-// export var NewTaskPopup = [
-//     [new HeaderPopupElement("New Task")],
-//     [new TextPopupInput("Title", "title")],
-//     [new ClockTimePopupInput("Start Time", "time_start"), new DurationPopupInput("Task Duration", "duration"), new ClockTimePopupInput("Due Time", "time_due")],
-//     [new MultiPopupInput("Assignment Rules", "rules", [], {
-//         [InstanceRuleType.SINGLE]: {label: "Once", input: () => new CardPopupInput(_, _, _, () => [
-//             [new DateTimePopupInput("Date & Time", "date")],
-//         ])},
-//         [InstanceRuleType.DAY]: {label: "by Day", input: () => new CardPopupInput(_, _, _, () => [
-//             [new DatePopupInput("Starting on...", "from")],
-//             [new NumberPopupInput("Every...", "every", 1, 1)],
-//         ])},
-//         [InstanceRuleType.WEEK]: {label: "by Week", input: () => new CardPopupInput(_, _, _, () => [
-//             [new MultiSelectPopupInput("Weekdays", "weekdays", _, Weekdays)],
-//             [new NumberPopupInput("Every...", "every", 1, 1)],
-//         ])},
-//         [InstanceRuleType.MONTH]: {label: "by Month", input: () => new CardPopupInput(_, _, _, () => [
-//             [new NumberPopupInput("Day", "day", 1, 1, 31)],
-//             [new NumberPopupInput("Every...", "every", 1, 1)],
-//         ])},
-//         [InstanceRuleType.YEAR]: {label: "by Year", input: () => new CardPopupInput(_, _, _, () => [
-//             [new NumberPopupInput("Month", "month", 1, 1, 12)],
-//             [new NumberPopupInput("Day", "day", 1, 1, 31)],
-//             [new NumberPopupInput("Every...", "every", 1, 1)],
-//         ])},
-//     })],
-//     [new MultiPopupInput("Reminders", "reminders", [], {
-//         "relative": {
-//             label: "Relative",
-//             input: () => new CardPopupInput(_, _, _, () => [ // <=- The uuh uhm... Input the same way a popup yeah it's like a mini one inside of a a yeah you yeah yup
-//                 [new NumberPopupInput("Minutes", "minutes", 0, 0)],
-//                 [new NumberPopupInput("Hours", "hours", 0, 0)],
-//                 [new NumberPopupInput("Days", "days", 0, 0)],
-//                 [new SelectPopupInput("When", "when", "Before", ["Before", "After"])],
-//                 [new SelectPopupInput("From", "from", "Start", ["Start", "Due"])],
-//             ])
-//         },
-//         "exact": {
-//             label: "Exact",
-//             input: () => new CardPopupInput(_, _, _, () => [ // <=- The uuh uhm... Input the same way a popup yeah it's like a mini one inside of a a yeah you yeah yup
-//                 [new ClockTimePopupInput("Time", "time")],
-//             ])
-//         },
-//     })],
-//     [new MultiPopupInput("Sub-Tasks", "sub_tasks", [], {
-//         "_": {label: "Default", input: () => new TextPopupInput(_,_)}
-//     })],
-//     [new SubmitPopupButton()],
-// ]
 
-// Okay make some shit called a mini prompt or a card or something and you can just make objects from that
-// new MultiPopupInput("Reminders", "reminders", [], {
-//     "relative": {
-//         label: "Relative",
-//         input: () => new CardPopupInput(_, _, _, () => [ // <=- The uuh uhm... Input the same way a popup yeah it's like a mini one inside of a a yeah you yeah yup
-//             [new NumberPopupInput("Minutes", "minutes", 0, 0)],
-//             [new NumberPopupInput("Hours", "hours", 0, 0)],
-//             [new NumberPopupInput("Days", "days", 0, 0)],
-//             [new DropDownPopupInput("When", "when", "Before", ["Before", "After"])],
-//             [new DropDownPopupInput("From", "from", "Start", ["Start", "Due"])],
-//         ])
-//     },
-//     "exact": {
-//         label: "Exact",
-//         input: () => new CardPopupInput(_, _, _, () => [ // <=- The uuh uhm... Input the same way a popup yeah it's like a mini one inside of a a yeah you yeah yup
-//             [new ClockTimePopupInput("Time", "time")],
-//         ])
-//     },
-// })
+// export var PoppedUpTask = null
+export async function openPlannerTaskPopup(task: PlannerTask | null = null, newAnyway: boolean = false) {
+    let input_task: any = JSON.parse(JSON.stringify(task))
+    let cache_reminders: Reminder[] = []
+    if (task != null) {
+        let proms = input_task.reminders.map((reminder_id) => Reminders.findEntry(reminder_id))
+        cache_reminders = await Promise.all(proms)
+        input_task.reminders = cache_reminders.map((reminder) => {return JSON.parse(JSON.stringify(reminder.meta))})
+        // PoppedUpTask
 
-// var IdealPlannerTaskPopup = [
-//     [new HeaderPopupElement("New Task")],
-//     [new TextPopupInput("Title", "title")],
-//     [new ClockTimePopupInput("Start Time", "time_start"), new DurationPopupInput("Task Duration", "duration"), new ClockTimePopupInput("Due Time", "time_due")],
-//     [new MultiPopupInput("Assignment Rules", "rules", {
-//         "Once": new TaskRuleOncePopupInput(_, _), // InstanceRuleOnce
-//         "by Day": new TaskRuleDayPopupInput(_, _), // InstanceRuleDay
-//         "by Week": new TaskRuleWeekPopupInput(_, _), // InstanceRuleWeek
-//         "by Month": new TaskRuleMonthPopupInput(_, _), // InstanceRuleMonth
-//         "by Year": new TaskRuleYearPopupInput(_, _), // InstanceRuleYear
-//     })],
-//     [new MultiPopupInput("Sub-Tasks", "sub_tasks", {
-//         "_": new TextPopupInput(_,_) // <= Select input that returns a taskID- wait a minute, it'd be better to list the parent task on all the sub-tasks... nah wait sub tasks are like- a new thing... so they return a got damnb string??
-//     })],
-//     [new MultiPopupInput("Reminders", "reminders", {
-//         "_": new RelativeReminderPopupInput(_,_, () => ["start", "due"])
-//     })],
-//     [new TextPopupInput("Link", "link")],
-//     [new MultiPopupInput("Tags", "tags", {
-//         "_": new TagPopupInput(_,_) 
-//     })],
-//     [new SubmitPopupButton()],
-// ]
+        input_task.rules = input_task.rules.map((rule) => {return Object.assign({has_override: (rule.time_start != undefined)}, rule)})
+        print("THEMS THE RULES: ", input_task.rules)
+    }
 
-// var IdealProjectTaskPopup = [
-//     [new ProjectPopupInput("Project", "project")],
-//     [new HeaderPopupElement("New Task")],
-//     [new TextPopupInput("Title", "title")],
-//     [new DurationPopupInput("Task Duration", "duration"), new DateTimePopupInput("Due Date", "due")],
-//     [new MultiPopupInput("Sub-Tasks", "sub_tasks", {
-//         "_": new TextPopupInput(_,_) // <= Select input that returns a taskID- wait a minute, it'd be better to list the parent task on all the sub-tasks... nah wait sub tasks are like- a new thing... so they return a got damnb string??
-//     })],
-//     [new MultiPopupInput("Reminders", "reminders", {
-//         "Relative": new RelativeReminderPopupInput(_,_, () => ["due"])
-//         "Exact": new ExactReminderPopupInput(_,_)
-//     })],
-//     [new TextPopupInput("Link", "link")],
-//     [new MultiPopupInput("Tags", "tags", {
-//         "_": new TagPopupInput(_,_) 
-//     })],
-//     [new SubmitPopupButton()],
-// ]
+    let {html_elems, inputs} = PopupDriver.open(NewTaskPopup(), input_task, async (data: PlannerTaskStatic) => {
+        if (!newAnyway) {
+            cache_reminders.forEach(reminder => {
+                Reminders.deleteEntry(reminder.id)
+            })
+        }
+        
+        if (PlannerTask == null) {return}
+
+        let remindersToCreate = data.reminders
+        data.reminders = []
+        await remindersToCreate.awaitForEach(async (reminder_data: (ReminderMetaRelative | ReminderMetaTime | ReminderMetaOnce)) => {
+            reminder_data.type = Number(reminder_data.type)
+            // print(reminder_data)
+            // let reminder = await Reminder.create({meta: reminder_data})
+            let reminder = new Reminder({meta: reminder_data})
+            data.reminders.push(reminder.id)
+        })
+        
+        if (task == null || newAnyway) {
+            // let thisTask = await PlannerTask.create(data)
+            let thisTask = new PlannerTask(data)
+
+            print("Created Task!", thisTask)
+        } else {
+            await PlannerTasks.updateEntry(task.id, new PlannerTask(data, true))
+
+            print("Edited Task!", data)
+        }
+    })
+
+    if (inputs != null) { // this is scuffed and ghetto and I hate it and I hate it and it's not right but it works.
+        let startElem: HTMLInputElement = inputs["time_start"].children[1] as HTMLInputElement 
+        let endElem: HTMLInputElement = inputs["time_due"].children[1] as HTMLInputElement
+        let startChange = (e: Event) => {
+            print(startElem.value)
+            endElem.min = startElem.value
+        }
+
+        startElem.addEventListener("input", startChange)
+        startElem.addEventListener("change", startChange)
+
+        let endChange = (e: Event) => {
+            print(endElem.value)
+            startElem.max = endElem.value
+        }
+
+        endElem.addEventListener("input", endChange)
+        endElem.addEventListener("change", endChange)
+
+
+        // print(html_elems)
+        // let task_override_boxes: HTMLInputElement[] = (html_elems.filter(elem => elem.hasAttribute("task_override_checkbox")) as HTMLInputElement[])
+        // task_override_boxes.forEach(task_override_box => {
+
+        // })
+    }
+}
 
 export interface NewTaskResult extends Task {}

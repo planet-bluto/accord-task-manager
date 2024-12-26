@@ -24,6 +24,7 @@ const props = defineProps<{
 }
 
 .sidebar-header {
+    font-family: "MontserratBold";
     font-size: 30px;
     margin: 0px;
 }

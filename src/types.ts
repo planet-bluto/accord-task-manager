@@ -47,6 +47,9 @@ export function ClockTime_fromString(str: string): ClockTime {
 export function ClockTime_fromDate(date: Date): ClockTime {
     return ClockTime_fromString(moment(date).format("HH:mm"))
 }
+export function ClockTime_isEqual(timeA, timeB) {
+    return (ClockTime_toString(timeA) == ClockTime_toString(timeB))
+}
 
 export interface DateTime {
     day: number,
@@ -54,6 +57,10 @@ export interface DateTime {
     year: number,
     hour: number,
     minute: number
+}
+export function DateTime_toTimestamp(date: DateTime): number {
+    print(date)
+    return (new Date(date.year, date.month, date.day, date.hour, date.minute, 0, 0).getTime())
 }
 
 export interface CalendarWeek {
@@ -79,10 +86,27 @@ export enum TaskType {
     PROJECT
 }
 
+export const TaskStatuses = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "SKIPPED", "FAILED"] as const
 export enum TaskStatus {
     NOT_STARTED,
     IN_PROGRESS,
-    COMPLETED
+    COMPLETED,
+    SKIPPED,
+    FAILED
+}
+export const CleanTaskStatuses: {[index: string]: TaskStatus} = {
+    "Completed": TaskStatus.COMPLETED,
+    "In Progress": TaskStatus.IN_PROGRESS,
+    "Skipped": TaskStatus.SKIPPED,
+    "Failed": TaskStatus.FAILED,
+    "Not Started": TaskStatus.NOT_STARTED,
+}
+
+export const TaskStates = ["OVERDUE", "TODO", "DONE"] as const
+export enum TaskState {
+    OVERDUE,
+    TODO,
+    DONE
 }
 
 export interface TaskOverride {
@@ -177,7 +201,7 @@ export interface ReminderMetaTime extends ReminderMeta {
 
 export interface ReminderMetaOnce extends ReminderMeta {
     type: ReminderType.ONCE;
-    time: DateTime;
+    time: number; // <--- Timestamp
 }
 
 export enum ReminderType {

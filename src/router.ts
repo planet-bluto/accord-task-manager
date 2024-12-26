@@ -3,6 +3,7 @@ import { CalendarDate } from './types'
 import { FocusedDate, TaskListFilters } from './persist'
 import { Task } from './models/task'
 import moment from 'moment'
+import EventEmitter from 'eventemitter3';
 
 export enum Views {
     TASKS,
@@ -11,7 +12,7 @@ export enum Views {
 }
 
 // TODO: Extent event listenerr
-class RouterClass {
+class RouterClass extends EventEmitter {
     current: Ref<Views> = ref(Views.TASKS)
     header: Ref<String> = ref("...")
 
@@ -19,6 +20,7 @@ class RouterClass {
         this.current.value = val
         this.header.value = header
         // TODO: Somethin' somethin' event here
+        this.emit("switch")
     }
 
     switch_to_date(date: CalendarDate) {
@@ -29,7 +31,9 @@ class RouterClass {
 
         FocusedDate.value = date
 
-        print(FocusedDate.value)
+        // print(FocusedDate.value)
+
+        this.emit("switch")
     }
 }
 

@@ -14,3 +14,9 @@ export function parseDuration(duration: number) {
 
     return {hours, minutes}
 }
+
+export function parseDurationString(duration: number) {
+    let parsedDuration = parseDuration(duration)
+
+    return parsedDuration.hours + ":" + String(parsedDuration.minutes).padStart(2, "0")
+}

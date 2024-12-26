@@ -3,6 +3,7 @@ import moment from 'moment';
 
 import SidebarButton from "./SidebarButton.vue"
 import Calendar from "./Calendar.vue"
+import { currMonth, currYear } from '../persist';
 
 import {Router, Views} from "../router"
 
@@ -10,11 +11,13 @@ import {Router, Views} from "../router"
 
 <template>
 <div id="sidebar">
-    <h1 id="calendar-month-header">{{ moment().format("MMMM") }}</h1>
+    <h1 id="calendar-month-header">{{ moment({month: currMonth, year: currYear}).format("MMMM, YYYY") }}</h1>
     <Calendar></Calendar>
-    <SidebarButton label="TaskList" :func="() => { Router.switch(Views.TASKS, `TaskListView`), Router.filters([]) }" />
+    <!-- <SidebarButton label="TaskList" :func="() => { Router.switch(Views.TASKS, `TaskListView`) }" /> -->
     <SidebarButton label="Planner" :func="() => { Router.switch(Views.PLANNER, `PlannerView`) }" />
-    <SidebarButton label="FocusSession" :func="() => { Router.switch(Views.FOCUS, `FocusView`) }" />
+    <SidebarButton label="Focus" :func="() => { Router.switch(Views.FOCUS, `FocusView`) }" />
+    <SidebarButton label="Projects" :func="() => { Router.switch(Views.FOCUS, `FocusView`) }" />
+    <SidebarButton label="Plans" :func="() => { Router.switch(Views.FOCUS, `FocusView`) }" />
 </div>
 </template>
 
@@ -30,5 +33,6 @@ import {Router, Views} from "../router"
 #calendar-month-header {
     width: 100%;
     text-align: center;
+    font-family: "MontserratBold";
 }
 </style>

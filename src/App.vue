@@ -33,6 +33,7 @@ Router.switch_to_date(CalendarDate_fromDate(new Date()))
 <style scoped>
 #right {
   width: calc(100% - (var(--sidebar-width) + var(--gap)));
+  /* width: 100%; */
   height: 100%;
   display: flex;
   flex-direction: column;

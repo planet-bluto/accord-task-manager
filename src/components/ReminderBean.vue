@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ComputedRef } from 'vue';
+import { computed, ComputedRef, onMounted, ref } from 'vue';
 import { PlannerTask, ProjectTask, Task } from '../models/task';
 import moment from 'moment';
 import { Reminder } from '../models/reminder';
 import { ClockTime, ClockTime_fromDate, ReminderMeta, ReminderMetaOnce, ReminderMetaRelative, ReminderMetaTime, ReminderType } from '../types';
 import { FocusedDate, Reminders } from '../persist';
+import { Interval } from '../interval';
+import { Router } from '../router';
 
 const props = defineProps<{
     reminderId: string;
@@ -16,7 +18,7 @@ const timestamp: ComputedRef<number> = computed(() => {
 
   let reminder: Reminder = Reminders.value.find(reminder => reminder.id == props.reminderId)
   if (reminder == undefined) { return Date.now() }
-  print("Reminder: ", reminder)
+  // print("Reminder: ", reminder)
 
   if (reminder.meta.type == ReminderType.ONCE) {
     print("One time one time...")
@@ -29,11 +31,11 @@ const timestamp: ComputedRef<number> = computed(() => {
 
     let actual_reminder = reminder.meta as ReminderMetaRelative
     let momentObj = {...FocusedDate.value}
-    print((actual_reminder.base == "start" ? task_start : task_end))
+    // print((actual_reminder.base == "start" ? task_start : task_end))
     Object.assign(momentObj, (actual_reminder.base == "start" ? task_start : task_end))
 
     let dateMoment = moment(momentObj)
-    print(momentObj)
+    // print(momentObj)
     
     let theKeys: ("minutes" | "hours" | "days")[] = ["minutes", "hours", "days"]
     theKeys.forEach((key: "minutes" | "hours" | "days") => {
@@ -50,13 +52,25 @@ const timestamp: ComputedRef<number> = computed(() => {
   return returnStamp
 })
 
+const timestampLabel = ref("")
 
+Interval.on("second", () => {
+  timestampLabel.value = moment(timestamp.value).fromNow()
+})
 
+Router.on("switch", () => {
+  print("Switched!")
+  timestampLabel.value = moment(timestamp.value).fromNow()
+})
+
+onMounted(() => {
+  timestampLabel.value = moment(timestamp.value).fromNow()
+})
 </script>
 
 <template>
 <div class="reminder-bean">
-  <p :title="moment(timestamp).format('dddd, MMMM Do YYYY, h:mm:ss a')">{{ moment(timestamp).fromNow() }}</p>
+  <p :title="moment(timestamp).format('dddd, MMMM Do YYYY, h:mm:ss a')">{{ timestampLabel }}</p>
 </div>
 </template>
 

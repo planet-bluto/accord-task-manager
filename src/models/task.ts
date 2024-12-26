@@ -1,4 +1,4 @@
-import { CalendarDate, CalendarDate_isEqual, ClockTime, DateTime, InstanceRule, InstanceRuleDay, InstanceRuleMonth, InstanceRuleSingle, InstanceRuleType, InstanceRuleWeek, InstanceRuleYear, SubTask, TaskOverride, TaskStatus, Weekdays } from '../types';
+import { CalendarDate, CalendarDate_isEqual, CalendarDate_toString, ClockTime, DateTime, InstanceRule, InstanceRuleDay, InstanceRuleMonth, InstanceRuleSingle, InstanceRuleType, InstanceRuleWeek, InstanceRuleYear, SubTask, TaskOverride, TaskStatus, TaskStatuses, Weekdays } from '../types';
 import moment from "moment";
 import { PlannerTasks, ProjectTasks } from '../persist';
 import { Snowflake } from '@sapphire/snowflake';
@@ -13,7 +13,7 @@ export interface TaskStatic {
     reminders?: string[];
     sub_tasks: SubTask[];
     link?: string;
-    status?: TaskStatus;
+    status?: {[date: string]: TaskStatus};
 }
 
 export class Task implements TaskStatic {
@@ -25,14 +25,18 @@ export class Task implements TaskStatic {
     reminders?: string[];
     sub_tasks: SubTask[];
     link?: string;
-    status?: TaskStatus;
+    status?: {[date: string]: TaskStatus};
 
     constructor(obj: (PlannerTaskStatic | ProjectTaskStatic)) {
         if (obj.id == null) { this.id = String(snowflake.generate()) }
     }
 
-    isOnDate(_date: CalendarDate) {
-        throw new Error('Method not implemented.');
+    isOnDate(_date: CalendarDate): boolean {
+        return (this.onDate(_date) != undefined)
+    }
+
+    onDate(_date: CalendarDate): undefined | (PlannerTaskDated | ProjectTaskDated) {
+        return undefined;
     }
 }
 
@@ -47,6 +51,15 @@ export interface PlannerTaskStatic extends TaskStatic {
     overrides: TaskOverride[]; // Default property
 }
 
+export interface PlannerTaskDated extends TaskStatic {
+    type: "planner"
+
+    time_start: ClockTime;
+    time_due: ClockTime;
+    // rules: InstanceRule[]; // Default property
+    // overrides: TaskOverride[]; // Default property
+}
+
 export class PlannerTask extends Task implements PlannerTaskStatic {
         declare type: "planner";
 
@@ -55,21 +68,25 @@ export class PlannerTask extends Task implements PlannerTaskStatic {
         rules: InstanceRule[]; // Default property
         overrides: TaskOverride[]; // Default property
 
-        constructor(obj: PlannerTaskStatic) {
+        constructor(obj: PlannerTaskStatic, notNew = false) {
             super(obj)
+            this["type"] = "planner"
             Object.assign(this, obj)
-            PlannerTasks.push(this)
+            if (!notNew) {
+                PlannerTasks.push(this)
+            }
         }
 
-        isOnDate(date: CalendarDate) {
-            let isIt = false
+        onDate(date: CalendarDate) {
+            // let isIt = false
+            let decidingRule = null
 
             for (let i = 0; i < this.rules.length; i++) {
-                if (isIt) { break }
+                if (decidingRule) { break }
 
                 let rule: InstanceRule = this.rules[i]
 
-                function itIs() { isIt = true }
+                function itIs() { decidingRule = rule }
 
                 let dateMoment = moment(date)
 
@@ -106,12 +123,59 @@ export class PlannerTask extends Task implements PlannerTaskStatic {
                 }
             }
 
-            return isIt
+            if (decidingRule == null) { return undefined }
+
+            let datedTask: PlannerTaskDated = {
+                type: 'planner',
+                id: this.id,
+                icon: this.icon,
+                title: this.title,
+
+                time_start: (decidingRule.time_start || this.time_start),
+                time_due: (decidingRule.time_due || this.time_due),
+                duration: (decidingRule.duration || this.duration),
+
+                reminders: this.reminders,
+                sub_tasks: this.sub_tasks,
+                link: this.link,
+                status: this.status
+            }
+
+            return datedTask
+        }
+
+        statusOnDate(date: CalendarDate) {
+            return (this.status ? (this.status[CalendarDate_toString(date)] || TaskStatus.NOT_STARTED) : TaskStatus.NOT_STARTED)
+        }
+
+        stateOnDate(date: CalendarDate) {
+            let status = this.statusOnDate(date)
+            
+            const {COMPLETED, FAILED, SKIPPED} = TaskStatus
+
+            let cloned_date = JSON.parse(JSON.stringify(date))
+            let obj = Object.assign(cloned_date, this.onDate(cloned_date).time_due)
+            let datedTaskDueMoment = moment(obj)
+
+            if ([COMPLETED, FAILED, SKIPPED].includes(status)) {
+                return 'DONE'
+            } else if (datedTaskDueMoment.isBefore(moment())) {
+                return 'OVERDUE'
+            } else {
+                return 'TODO'
+            }
         }
     }
 
 export interface ProjectTaskStatic extends TaskStatic {
     type: "project";
+
+    projectId: string;
+    due: DateTime;
+}
+
+export interface ProjectTaskDated extends TaskStatic {
+    type: "project"
 
     projectId: string;
     due: DateTime;
@@ -125,11 +189,16 @@ export class ProjectTask extends Task implements ProjectTaskStatic {
 
     constructor(obj: ProjectTaskStatic) {
         super(obj)
+        this["type"] = "project"
         Object.assign(this, obj)
         ProjectTasks.push(this)
     }
 
-    isOnDate(date: CalendarDate) {
-        return (this.due.year == date.year && this.due.month == date.month && this.due.day == date.day)
+    onDate(date: CalendarDate) {
+        if (this.due.year == date.year && this.due.month == date.month && this.due.day == date.day) {
+            return (this as ProjectTaskDated)
+        } else {
+            return undefined
+        }
     }
 }

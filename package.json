@@ -4,7 +4,7 @@
   "displayName": "AccordTaskManager",
   "version": "0.0.1",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vue-tsc -b && vite build",
     "test:android": "vue-tsc -b && vite build && cordova run android --device",
     "test:electron": "vue-tsc -b && vite build && cordova run electron",
@@ -13,6 +13,7 @@
   "dependencies": {
     "@bluaxolotl/sql.js-as-sqlite3": "^0.2.4",
     "@sapphire/snowflake": "^3.5.5",
+    "eventemitter3": "^5.0.1",
     "localforage": "^1.10.0",
     "moment": "^2.30.1",
     "vue": "^3.4.37"

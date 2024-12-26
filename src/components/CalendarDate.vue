@@ -16,7 +16,7 @@ const props = defineProps<{
 .calender-date {
   background-color: var(--theme-back-3);
   border-radius: 5px;
-  font-weight: bolder;
+  font-family: "MontserratBold";
   align-content: center;
   text-align: center;
 }
