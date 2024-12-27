@@ -25,7 +25,7 @@ class RouterClass extends EventEmitter {
 
     switch_to_date(date: CalendarDate) {
         this.current.value = Views.TASKS
-        this.header.value = moment(date).format("MMM Do, YYYY")
+        this.header.value = moment(date).format("ddd MMM Do, YYYY")
 
         TaskListFilters.value = [(task: Task) => task.isOnDate(date)]
 

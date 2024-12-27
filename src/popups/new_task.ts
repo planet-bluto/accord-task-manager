@@ -31,6 +31,15 @@ function instanceRuleMake(elements: any[]) {
     return (() => elements)
 }
 
+function instanceModifierMake(elements: any[]) {
+    // elements.push([new TaskOverrideCheckboxPopupInput("Time Override", "has_override")])
+    // elements.push([new SubHeaderPopupElement("Time Override")])
+    elements.push([new ClockTimePopupInput("Start Time", "time_start")])
+    elements.push([new ClockTimePopupInput("Due Time", "time_due")])
+    elements.push([new DurationPopupInput("Task Duration", "duration")])
+    return (() => elements)
+}
+
 export const NewTaskPopup = () => [
     [new HeaderPopupElement("New Task")],
     [new TextPopupInput("Title", "title")],
@@ -52,6 +61,42 @@ export const NewTaskPopup = () => [
             [new NumberPopupInput("Every", "every", 1, 1)],
         ]))},
         [InstanceRuleType.MONTH]: {label: "Month", input: () => new CardPopupInput(_, _, _, instanceRuleMake([
+            [new HeaderPopupElement("Monthly")],
+            [new NumberPopupInput("Day", "day", 1, 1, 31)],
+            [new CardPopupInput("Starting On", "from", [], () => [
+                [new SelectPopupInput("Month", "month", MonthSelectPopupTemplate, moment().month(), "number"), new NumberPopupInput("Year", "year", moment().year(), 1970, 3070)]
+            ])],
+            [new NumberPopupInput("Every", "every", 1, 1)],
+        ]))},
+        [InstanceRuleType.YEAR]: {label: "Year", input: () => new CardPopupInput(_, _, _, instanceRuleMake([
+            [new HeaderPopupElement("Yearly")],
+            [new SelectPopupInput("Month", "month", MonthSelectPopupTemplate, moment().month(), "number"), new NumberPopupInput("Day", "day", moment().day(), 1, 31)],
+            [new NumberPopupInput("Starting On", "from", moment().year(), 1970, 3070)],
+            [new NumberPopupInput("Every", "every", 1, 1)],
+        ]))},
+    })],
+    [new MultiPopupInput("Modifiers", "modifiers", [], {
+        // this is going to be the schedule one, yeah
+        // [InstanceRuleType.SINGLE]: {label: "Once", input: () => new CardPopupInput(_, _, _, instanceModifierMake([
+        //     [new HeaderPopupElement("Once")],
+        //     [new CalendarDatePopupInput("Date", "date")],
+        // ]))},
+        [InstanceRuleType.SINGLE]: {label: "Once", input: () => new CardPopupInput(_, _, _, instanceModifierMake([
+            [new HeaderPopupElement("Once")],
+            [new CalendarDatePopupInput("Date", "date")],
+        ]))},
+        [InstanceRuleType.DAY]: {label: "Days", input: () => new CardPopupInput(_, _, _, instanceModifierMake([
+            [new HeaderPopupElement("Daily")],
+            [new CalendarDatePopupInput("Starting on", "from")],
+            [new NumberPopupInput("Every", "every", 1, 1)],
+        ]))},
+        [InstanceRuleType.WEEK]: {label: "Week", input: () => new CardPopupInput(_, _, _, instanceModifierMake([
+            [new HeaderPopupElement("Weekly")],
+            [new MultiSelectPopupInput("", "weekdays", Weekdays)],
+            [new WeekPopupInput("Starting On", "from", {week: moment().week(), year: moment().year()})],
+            [new NumberPopupInput("Every", "every", 1, 1)],
+        ]))},
+        [InstanceRuleType.MONTH]: {label: "Month", input: () => new CardPopupInput(_, _, _, instanceModifierMake([
             [new HeaderPopupElement("Monthly")],
             [new NumberPopupInput("Day", "day", 1, 1, 31)],
             [new CardPopupInput("Starting On", "from", [], () => [

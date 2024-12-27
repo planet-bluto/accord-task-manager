@@ -44,5 +44,6 @@ Router.switch_to_date(CalendarDate_fromDate(new Date()))
   width: 100%;
   height: 100%;
   overflow-y: scroll;
+  overflow-x: hidden;
 }
 </style>

@@ -66,6 +66,10 @@ animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1);
   --sidebar-width: 295px;
 }
 
+html {
+  overflow: hidden;
+}
+
 body {
   width: calc(100vw - (var(--gap) * 2));
   height: calc(100vh - (var(--gap) * 2));
