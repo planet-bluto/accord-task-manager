@@ -5,6 +5,7 @@ import "./extends/date"
 import "./extends/print"
 import "./extends/epoch"
 
+import PrimeVue from 'primevue/config';
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
@@ -13,5 +14,9 @@ import "./classTest"
 import "./notificationTest"
 import "./interval"
 import "./reminders"
+import "./test"
 
-createApp(App).mount('#app')
+
+const app = createApp(App)
+app.use(PrimeVue, { unstyled: true })
+app.mount('#app')

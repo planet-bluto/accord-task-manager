@@ -5,6 +5,7 @@ import ListTask from "../ListTask.vue"
 import { FocusedDate, PlannerTasks, TaskListFilters } from "../../persist";
 import { HOUR, MINUTE } from "../../time";
 import { CleanTaskStatuses, TaskStates, TaskStatus, TaskStatuses } from "../../types";
+import { openPlannerTaskPopup } from "../../popups/new_task";
 
 // let tasks = ref([]);
 
@@ -45,11 +46,47 @@ const TaskListTasks: ComputedRef<Task[]> = computed(() => {
 
 const focusedListTask: Ref<null | HTMLDivElement> = ref(null)
 provide('focusedListTask', focusedListTask)
+
+const focusedTask: Ref<null | Task> = ref(null)
+
+import ContextMenu from 'primevue/contextmenu';
+import { MenuItem } from "primevue/menuitem";
+
+const menu = ref();
+
+const items_base: MenuItem[] = [
+    { label: 'Edit', command: () => {
+      let task = (focusedTask.value as PlannerTask)
+      if (task.type == "planner") {
+        openPlannerTaskPopup(task)
+      }
+    }},
+    { label: 'Clone', command: () => {
+      let task = (focusedTask.value as PlannerTask)
+      if (task.type == "planner") {
+        openPlannerTaskPopup(task, true)
+      }
+    }},
+    { label: 'Delete', command: () => {
+      // print(focusedTask.value)
+      let task = (focusedTask.value as PlannerTask)
+      if (task.type == "planner") {
+        PlannerTasks.deleteEntry(task.id)
+      }
+    }},
+]
+const items: Ref<MenuItem[]> = ref(items_base);
+function openTaskContextMenu(event: MouseEvent, task: Task) {
+  // print(menu)
+  focusedTask.value = task
+  menu.value.show(event)
+}
 </script>
 
 <template>
 <TransitionGroup class="task-list" name="list" tag="div">
-  <ListTask v-for="(task) in TaskListTasks" :task="task" :key="task.id"></ListTask>
+  <ContextMenu ref="menu" :model="items" />
+  <ListTask v-for="(task) in TaskListTasks" :task="task" :key="task.id" @contextmenu="event => openTaskContextMenu(event, task)"></ListTask>
 </TransitionGroup>
 </template>
 

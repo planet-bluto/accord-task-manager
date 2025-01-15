@@ -5,6 +5,7 @@ import Sidebar from "./components/Sidebar.vue"
 import TaskListView from "./components/views/TaskList.vue"
 import PlannerView from "./components/views/Planner.vue"
 import FocusSessionView from "./components/views/FocusSession.vue"
+import SchedulesView from "./components/views/SchedulesView.vue"
 
 import Popups from "./components/Popups.vue"
 
@@ -26,6 +27,7 @@ Router.switch_to_date(CalendarDate_fromDate(new Date()))
       <TaskListView v-show="Router.current.value == Views.TASKS"></TaskListView>
       <PlannerView v-show="Router.current.value == Views.PLANNER"></PlannerView>
       <FocusSessionView v-show="Router.current.value == Views.FOCUS"></FocusSessionView>
+      <SchedulesView v-show="Router.current.value == Views.SCHEDULES"></SchedulesView>
     </div>
   </div>
 </template>

@@ -3,6 +3,7 @@ import {nextTick, Ref, ref} from 'vue'
 import { CalendarDate, CalendarDate_fromDate, CalendarDate_fromString, CalendarDate_toString, CalendarWeek, CalendarWeek_fromString, CalendarWeek_toString, ClockTime, ClockTime_fromDate, ClockTime_fromString, ClockTime_toString, Weekday } from './types'
 import { HOUR, MINUTE, parseDuration } from './time'
 import { Snowflake } from '@sapphire/snowflake';
+import { deepAssign } from './deepAssign';
 const snowflake = new Snowflake(SNOWFLAKE_EPOCH);
 
 interface InputDictionary {[index: string]: HTMLElement}
@@ -11,11 +12,13 @@ const elemToClassCache: Map<HTMLElement, string> = new Map()
 const classToElemCache: Map<string, HTMLElement> = new Map()
 
 class PopupDriverClass {
+    currentData: object = {}
     in_popup: Ref<Boolean> = ref(false)
     current_elems: Ref<PopupElement[]> = ref([])
     submitFunc: Function | null = null
 
     open(lines: PopupElement[][], inputData: Object | null = null, submitFunc: Function | null = null): {inputs: InputDictionary, elems: PopupElement[], html_elems: HTMLElement[]} | null {
+        this.currentData = (inputData || {})
         this.submitFunc = submitFunc
 
         elemToClassCache.clear()
@@ -80,8 +83,11 @@ class PopupDriverClass {
                 data[elem_template.key as keyof Object] = elem_template.value()
             })
 
-            console.log(data)
-            if (this.submitFunc) { this.submitFunc(data) }
+            print(data)
+            let final_data = deepAssign(this.currentData, data)
+
+            console.log(final_data)
+            if (this.submitFunc) { this.submitFunc(final_data) }
         }
     }
 }
@@ -243,6 +249,9 @@ export class CheckboxPopupInput extends PopupInput {
         this.label_elem = document.createElement("p")
         this.label_elem.textContent = this.label
         cont.appendChild(this.label_elem)
+        this.label_elem.addEventListener("click", e => {
+            this.elem.checked = (!this.elem.checked)
+        })
 
         return cont
     }
@@ -883,13 +892,13 @@ function clone<T>(instance: T): T {
 // const clone = structuredClone
 
 export class MultiPopupInput extends PopupInput {
-    template: {[index: (number | string | "_")]: {label: string | null, input: (() => PopupInput)}};
+    template: () => {[index: (number | string | "_")]: {label: string | null, input: (() => PopupInput)}};
     active_inputs: PopupInput[] = []
     type_pointer: (number | string)[] = []
 
     inputs_container: HTMLDivElement = document.createElement("div")
 
-    constructor(label: string | null, key: string | null, def: [] = [], template: {[index: (number | string | "_")]: {label: string | null, input: (() => PopupInput)}} = {}) {
+    constructor(label: string | null, key: string | null, def: [] = [], template: () => {[index: (number | string | "_")]: {label: string | null, input: (() => PopupInput)}} = () => ({})) {
         super(label, key, def)
 
         this.template = template
@@ -931,6 +940,7 @@ export class MultiPopupInput extends PopupInput {
     }
 
     _compile(): HTMLElement {
+        let this_template = this.template()
         this.active_inputs = []
 
         let container = document.createElement("div")
@@ -959,18 +969,18 @@ export class MultiPopupInput extends PopupInput {
         add_panel_list.classList.add("popup-input-multi-panel")
         // add_button.appendChild(add_panel_list)
 
-        let keys: string[] = Object.keys(this.template)
+        let keys: string[] = Object.keys(this_template)
 
         add_panel_list.replaceChildren()
 
         keys.forEach(key => {
             let key_button = document.createElement("button")
 
-            key_button.textContent = (key == "_" ? "New" : this.template[key].label) // make titleCase function
+            key_button.textContent = (key == "_" ? "New" : this_template[key].label) // make titleCase function
             key_button.onclick = e => {
                 e.preventDefault()
 
-                this.instanceInput(this.template[key].input(), key)
+                this.instanceInput(this_template[key].input(), key)
             }
 
             add_panel_list.appendChild(key_button)
@@ -1008,7 +1018,7 @@ export class MultiPopupInput extends PopupInput {
         Object.keys(thisValue).forEach((key: any) => {
             let entry = thisValue[key]
             print("KEY: ", key, " ENTRY: ", entry)
-            this.instanceInput(this.template[entry.type].input(), entry.type, entry)
+            this.instanceInput(this.template()[entry.type].input(), entry.type, entry)
         })
     }
 }

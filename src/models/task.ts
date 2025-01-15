@@ -1,7 +1,10 @@
-import { CalendarDate, CalendarDate_isEqual, CalendarDate_toString, ClockTime, DateTime, InstanceRule, InstanceRuleDay, InstanceRuleMonth, InstanceRuleSingle, InstanceRuleType, InstanceRuleWeek, InstanceRuleYear, SubTask, TaskOverride, TaskStatus, TaskStatuses, Weekdays } from '../types';
+import { CalendarDate, CalendarDate_isEqual, CalendarDate_toString, ClockTime, DateTime, InstanceModiferType, InstanceModifier, InstanceModifierManual, InstanceModifierSchedule, InstanceRule, InstanceRuleDay, InstanceRuleMonth, InstanceRuleSingle, InstanceRuleType, InstanceRuleWeek, InstanceRuleYear, ReminderMetaOnce, ReminderMetaRelative, ReminderMetaTime, SubTask, TaskStatus, TaskStatuses, Weekdays } from '../types';
 import moment from "moment";
-import { PlannerTasks, ProjectTasks } from '../persist';
+import { PlannerTasks, ProjectTasks, Schedules } from '../persist';
 import { Snowflake } from '@sapphire/snowflake';
+import { ruleOnDate } from '../rules';
+import { Schedule } from './schedule';
+import { Reminder } from './reminder';
 const snowflake = new Snowflake(SNOWFLAKE_EPOCH);
 
 export interface TaskStatic {
@@ -10,7 +13,7 @@ export interface TaskStatic {
     icon?: string; // null-ey
     title: string; // Required property on creation
     duration: number;
-    reminders?: string[];
+    reminders?: (ReminderMetaRelative | ReminderMetaTime | ReminderMetaOnce)[];
     sub_tasks: SubTask[];
     link?: string;
     status?: {[date: string]: TaskStatus};
@@ -22,7 +25,7 @@ export class Task implements TaskStatic {
     icon?: string; // null-ey
     title: string; // Required property on creation
     duration: number;
-    reminders?: string[];
+    reminders?: (ReminderMetaRelative | ReminderMetaTime | ReminderMetaOnce)[];
     sub_tasks: SubTask[];
     link?: string;
     status?: {[date: string]: TaskStatus};
@@ -48,7 +51,7 @@ export interface PlannerTaskStatic extends TaskStatic {
     time_start: ClockTime;
     time_due: ClockTime;
     rules: InstanceRule[]; // Default property
-    overrides: TaskOverride[]; // Default property
+    modifiers: InstanceModifier[]; // Default property
 }
 
 export interface PlannerTaskDated extends TaskStatic {
@@ -66,7 +69,7 @@ export class PlannerTask extends Task implements PlannerTaskStatic {
         time_start: ClockTime;
         time_due: ClockTime;
         rules: InstanceRule[]; // Default property
-        overrides: TaskOverride[]; // Default property
+        modifiers: InstanceModifier[]; // Default property
 
         constructor(obj: PlannerTaskStatic, notNew = false) {
             super(obj)
@@ -78,50 +81,12 @@ export class PlannerTask extends Task implements PlannerTaskStatic {
         }
 
         onDate(date: CalendarDate) {
-            // let isIt = false
-            let decidingRule = null
+            let decidingRule = ruleOnDate(this.rules, date).rule
 
-            for (let i = 0; i < this.rules.length; i++) {
-                if (decidingRule) { break }
+            let modifierIndex = ruleOnDate((this.modifiers || []).map((modifier) => ((modifier as InstanceModifierManual).rule || (modifier as InstanceModifierSchedule).schedule)), date).index
+            let decidingModifier = (modifierIndex != null ? this.modifiers[modifierIndex] : null)
 
-                let rule: InstanceRule = this.rules[i]
-
-                function itIs() { decidingRule = rule }
-
-                let dateMoment = moment(date)
-
-                if (rule.type == InstanceRuleType.SINGLE) {
-                    let actual_rule: InstanceRuleSingle = (rule as InstanceRuleSingle)
-                    if (CalendarDate_isEqual(actual_rule.date, date)) { itIs() }
-                }
-                if (rule.type == InstanceRuleType.WEEK) {
-                    let actual_rule: InstanceRuleWeek = (rule as InstanceRuleWeek)
-                    let weekday = dateMoment.weekday()
-                    let weekMoment = dateMoment.clone().set({week: actual_rule.from.week, year: actual_rule.from.year, weekday: weekday})
-                    let weekDiff = (dateMoment.diff(weekMoment, 'week'))
-
-                    if (actual_rule.weekdays.includes(Weekdays[weekday])) {
-                        if ((weekDiff % actual_rule.every) == 0) { itIs() }
-                    }
-                }
-                if (rule.type == InstanceRuleType.DAY) {
-                    let actual_rule: InstanceRuleDay = (rule as InstanceRuleDay)
-                    if (((dateMoment.diff(moment(actual_rule.from), 'days')) % actual_rule.every) == 0) { itIs() }
-                }
-                if (rule.type == InstanceRuleType.MONTH) {
-                    let actual_rule: InstanceRuleMonth = (rule as InstanceRuleMonth)
-                    if (actual_rule.day == date.day) {
-                        if (((dateMoment.diff(moment(actual_rule.from), 'months')) % actual_rule.every) == 0) { itIs() }
-                    }
-                }
-                if (rule.type == InstanceRuleType.YEAR) {
-                    let actual_rule: InstanceRuleYear = (rule as InstanceRuleYear)
-                    if (actual_rule.month == date.month && actual_rule.day == date.day) {
-                        let yearMoment = dateMoment.clone().set({year: actual_rule.from})
-                        if (((dateMoment.diff(yearMoment, 'years')) % actual_rule.every) == 0) { itIs() }
-                    }
-                }
-            }
+            // print(modifierIndex, decidingModifier, this.modifiers)
 
             if (decidingRule == null) { return undefined }
 
@@ -131,9 +96,9 @@ export class PlannerTask extends Task implements PlannerTaskStatic {
                 icon: this.icon,
                 title: this.title,
 
-                time_start: (decidingRule.time_start || this.time_start),
-                time_due: (decidingRule.time_due || this.time_due),
-                duration: (decidingRule.duration || this.duration),
+                time_start: (decidingModifier?.time_start || this.time_start),
+                time_due: (decidingModifier?.time_due || this.time_due),
+                duration: (decidingModifier?.duration || this.duration),
 
                 reminders: this.reminders,
                 sub_tasks: this.sub_tasks,
@@ -156,13 +121,18 @@ export class PlannerTask extends Task implements PlannerTaskStatic {
             let cloned_date = JSON.parse(JSON.stringify(date))
             let obj = Object.assign(cloned_date, this.onDate(cloned_date).time_due)
             let datedTaskDueMoment = moment(obj)
+            let cloned_date2 = JSON.parse(JSON.stringify(date))
+            let obj2 = Object.assign(cloned_date, this.onDate(cloned_date).time_start)
+            let datedTaskStartMoment = moment(obj2)
 
             if ([COMPLETED, FAILED, SKIPPED].includes(status)) {
                 return 'DONE'
             } else if (datedTaskDueMoment.isBefore(moment())) {
                 return 'OVERDUE'
-            } else {
+            } else if (datedTaskStartMoment.isBefore(moment())) {
                 return 'TODO'
+            } else {
+                return 'NONE'
             }
         }
     }

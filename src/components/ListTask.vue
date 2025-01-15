@@ -36,14 +36,14 @@ const getState = computed(() => {
   return (task as PlannerTask).stateOnDate(FocusedDate.value)
 })
 
-function openTaskContextMenu(event: MouseEvent) {
-  event.preventDefault();
-  console.log('Task context menu opened');
-  let {task} = props
-  if (task.type == 'planner') {
-    PopupDriver.open(PlannerTaskContextPopup(task as PlannerTask))
-  }
-}
+// function openTaskContextMenu(event: MouseEvent) {
+//   event.preventDefault();
+//   console.log('Task context menu opened');
+//   let {task} = props
+//   if (task.type == 'planner') {
+//     PopupDriver.open(PlannerTaskContextPopup(task as PlannerTask))
+//   }
+// }
 
 async function toggleCompleted(e: MouseEvent) {
   e.preventDefault()
@@ -99,7 +99,7 @@ function closeStatusContext() {
 </script>
 
 <template>
-<div ref="thisElem" class="list-task" @contextmenu="openTaskContextMenu" :context="contextMenuOpened">
+<div ref="thisElem" class="list-task" :context="contextMenuOpened">
   <div class="list-task-state-indicator-container">
     <div class="list-task-state-indicator" :state="getState"></div>
   </div>

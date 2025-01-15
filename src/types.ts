@@ -1,4 +1,5 @@
 import moment from "moment"
+import { Schedule } from './models/schedule';
 
 //// MISC. ////
 export const Weekdays: string[] = (["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const)
@@ -102,18 +103,12 @@ export const CleanTaskStatuses: {[index: string]: TaskStatus} = {
     "Not Started": TaskStatus.NOT_STARTED,
 }
 
-export const TaskStates = ["OVERDUE", "TODO", "DONE"] as const
+export const TaskStates = ["OVERDUE", "TODO", "NONE", "DONE"] as const
 export enum TaskState {
     OVERDUE,
     TODO,
+    NONE,
     DONE
-}
-
-export interface TaskOverride {
-    date: CalendarDate,
-    duration?: number,
-    time_start?: ClockTime,
-    time_due?: ClockTime
 }
 
 export interface SubTask {
@@ -132,13 +127,12 @@ export enum InstanceRuleType {
     WEEK,
     MONTH,
     YEAR,
+    SCHEDULE
 }
 
 export interface InstanceRule {
     type: InstanceRuleType,
-    duration?: number,
-    time_start?: ClockTime,
-    time_due?: ClockTime
+    inverse: boolean
 }
 // SINGLE
 export interface InstanceRuleSingle extends InstanceRule {
@@ -176,7 +170,32 @@ export interface InstanceRuleYear extends InstanceRule {
     every: number, // 1 == Every Year, 2 == Every Other, etc.
     from: number // "Starting On" Year
 }
+// SCHEDULE
+export interface InstanceRuleSchedule extends InstanceRule {
+    type: InstanceRuleType.SCHEDULE,
+    schedule: string
+}
 
+
+export enum InstanceModiferType {
+    MANUAL,
+    SCHEDULE
+}
+
+export interface InstanceModifier {
+    type: InstanceModiferType,
+    duration?: number,
+    time_start?: ClockTime,
+    time_due?: ClockTime
+}
+export interface InstanceModifierManual extends InstanceModifier {
+    type: InstanceModiferType.MANUAL,
+    rule: InstanceRule
+}
+export interface InstanceModifierSchedule extends InstanceModifier {
+    type: InstanceModiferType.SCHEDULE,
+    schedule: string // <= Schedule ID/Pointer
+}
 
 
 //// REMINDER... is a schema 💔 ////

@@ -9,7 +9,7 @@ import HeaderButton from "./HeaderButton.vue"
 <div id="header">
     <p id="header-text">{{ Router.header }}</p>
     <div id="header-buttons">
-        <HeaderButton id="add" icon="add" :func="openPlannerTaskPopup"/>
+        <HeaderButton id="add" icon="add" :func="Router.addButtonFunc.value"/>
         <HeaderButton id="notification" icon="notification" :func="() => {console.log(`Opening Notifications!`)}"/>
         <HeaderButton id="settings" icon="settings" :func="() => {console.log(`Opening Settings!`)}"/>
     </div>

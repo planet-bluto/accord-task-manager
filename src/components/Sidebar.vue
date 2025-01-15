@@ -6,6 +6,7 @@ import Calendar from "./Calendar.vue"
 import { currMonth, currYear } from '../persist';
 
 import {Router, Views} from "../router"
+import { openSchedulePopup } from '../popups/new_schedule';
 
 </script>
 
@@ -14,10 +15,10 @@ import {Router, Views} from "../router"
     <h1 id="calendar-month-header">{{ moment({month: currMonth, year: currYear}).format("MMMM, YYYY") }}</h1>
     <Calendar></Calendar>
     <!-- <SidebarButton label="TaskList" :func="() => { Router.switch(Views.TASKS, `TaskListView`) }" /> -->
-    <SidebarButton label="Planner" :func="() => { Router.switch(Views.PLANNER, `PlannerView`) }" />
-    <SidebarButton label="Focus" :func="() => { Router.switch(Views.FOCUS, `FocusView`) }" />
-    <SidebarButton label="Projects" :func="() => { Router.switch(Views.FOCUS, `FocusView`) }" />
-    <SidebarButton label="Plans" :func="() => { Router.switch(Views.FOCUS, `FocusView`) }" />
+    <SidebarButton label="Planner" :func="() => { Router.switch(Views.PLANNER, `Planner`) }" />
+    <SidebarButton label="Focus" :func="() => { Router.switch(Views.FOCUS, `Focus Session`) }" />
+    <SidebarButton label="Projects" :func="() => { Router.switch(Views.FOCUS, `Projects`) }" />
+    <SidebarButton label="Schedules" :func="() => { Router.switch(Views.SCHEDULES, `Schedules`, openSchedulePopup) }" />
 </div>
 </template>
 
